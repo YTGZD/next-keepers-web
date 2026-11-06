@@ -1,0 +1,9 @@
+<x-layouts.marketing>
+    @include('home.hero')
+    @include('home.platform')
+    @include('home.preview')
+    @include('home.story')
+    @include('home.audiences')
+    @include('home.mission')
+    @include('home.early-access')
+</x-layouts.marketing>
