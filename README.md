@@ -4,7 +4,13 @@ Marketing website for [nextkeepers.com](https://nextkeepers.com): homepage, earl
 
 ## Run it locally
 
-Requires PHP 8.3+, Composer and Node 20+.
+Requires PHP 8.3+, Composer and Node 20+. The quickest way, from the project folder:
+
+```bash
+./scripts/run-local.sh      # sets everything up, builds, opens http://127.0.0.1:8000
+```
+
+On a Mac without PHP yet: `/bin/bash -c "$(curl -fsSL https://php.new/install/mac/8.4)"`, install Node LTS from nodejs.org, then open a new Terminal window and run the script. Or do the same steps by hand:
 
 ```bash
 composer install
