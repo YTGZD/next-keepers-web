@@ -15,7 +15,7 @@ Laravel 13, PHP 8.3, Blade, Tailwind CSS v4 (tokens in `resources/css/app.css`),
 
 ## Structure
 - `resources/views/home/*.blade.php`: one partial per homepage section; `home.blade.php` stitches them together.
-- `resources/views/components/`: `x-button`, `x-logo` (placeholder lockup), `x-eyebrow`, `x-sample-badge`, `x-us-map`, `x-legal-page`, `x-layouts.marketing`.
+- `resources/views/components/`: `x-button`, `x-logo` (official logo SVGs in `public/images/logo/`), `x-eyebrow`, `x-sample-badge`, `x-us-map`, `x-legal-page`, `x-layouts.marketing`.
 - `resources/js/app.js`: Alpine components (`usMap`, `earlyAccess`) and scroll reveal.
 - `app/Http/Controllers/EarlyAccessController.php`: signup endpoint (JSON or normal POST, honeypot, throttle 5/min, upsert by email).
 

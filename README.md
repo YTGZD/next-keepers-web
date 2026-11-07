@@ -62,7 +62,9 @@ Point the web root at `public/`, set `APP_ENV=production`, `APP_DEBUG=false` and
 
 ## Placeholders to replace
 
-- **Logo:** `resources/views/components/logo.blade.php` is a temporary NK lockup; swap in the official SVG. Also replace `public/favicon.svg`.
+- **Mountain scenery:** `resources/views/components/mountains.blade.php` is a decorative SVG standing in for a real mountain photo in the quote section.
+- **Testimonials:** `config/testimonials.php` is empty on purpose; the quote section shows the mission statement until you add real, permissioned quotes (one quote = static, several = carousel).
+- **Who-we-serve photos:** the buyer/owner/investor images in `public/images/` are stand-ins; replace with your own.
 - **Key animation:** the golden key section uses the supplied still image with a slide-in and slow float. Swap in the key-and-lock animation when it is ready.
 - **Legal pages:** `resources/views/pages/privacy.blade.php` and `terms.blade.php` are plain-language drafts. Have a lawyer review them before launch.
 - **Homepage data:** the map points, the sample opportunity card and the product preview are illustrative and labelled as such. Replace them with real data only once it is sourced and validated.

@@ -17,7 +17,7 @@
 <footer class="bg-forest-deep text-ivory/80">
     <div class="mx-auto max-w-7xl px-5 py-12 sm:px-8">
         <div class="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-            <a href="{{ route('home') }}" aria-label="Next Keepers home" class="w-fit rounded-lg"><x-logo /></a>
+            <a href="{{ route('home') }}" aria-label="Next Keepers home" class="w-fit rounded-lg"><x-logo class="-ml-2" /></a>
 
             <nav aria-label="Footer" class="flex flex-wrap gap-x-7 gap-y-3 text-sm">
                 @foreach ($links as [$label, $href])

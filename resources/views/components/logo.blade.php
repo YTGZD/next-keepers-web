@@ -1,10 +1,11 @@
-{{-- Placeholder lockup (NK monogram + serif wordmark). Swap for the official SVG when supplied. --}}
-@props(['size' => 'md'])
-<span {{ $attributes->class(['inline-flex items-center gap-3']) }}>
-    <span aria-hidden="true" @class([
-        'grid place-items-center rounded-lg border border-ivory/35 bg-emerald/40 font-display font-semibold tracking-tighter text-ivory shadow-inner',
-        'size-10 text-lg' => $size === 'md',
-        'size-12 text-xl' => $size === 'lg',
-    ])>NK</span>
-    <span @class(['font-display tracking-tight text-ivory', 'text-xl' => $size === 'md', 'text-2xl' => $size === 'lg'])>Next Keepers</span>
-</span>
+{{-- Official Next Keepers lockup. `on` = the background it sits on: "dark" (light wordmark) or "light" (dark wordmark). --}}
+@props(['on' => 'dark', 'mark' => false])
+@if ($mark)
+    <img src="{{ asset('images/logo/mark.svg') }}" alt="Next Keepers" width="120" height="120" {{ $attributes->class(['size-10']) }}>
+@else
+    <img
+        src="{{ asset('images/logo/lockup-on-'.$on.'.svg') }}"
+        alt="Next Keepers" width="540" height="120"
+        {{ $attributes->class(['h-12 w-auto']) }}
+    >
+@endif

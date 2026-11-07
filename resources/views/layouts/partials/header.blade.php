@@ -18,7 +18,7 @@
 >
     <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8">
         <a href="{{ route('home') }}" aria-label="Next Keepers home" class="rounded-lg">
-            <x-logo />
+            <x-logo class="-ml-2" />
         </a>
 
         <nav aria-label="Primary" class="hidden items-center gap-8 text-sm text-ivory/85 lg:flex">
