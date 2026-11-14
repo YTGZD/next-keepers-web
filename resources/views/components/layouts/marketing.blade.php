@@ -45,5 +45,7 @@
     </main>
 
     @include('layouts.partials.footer')
+
+    <x-auth-modal />
 </body>
 </html>

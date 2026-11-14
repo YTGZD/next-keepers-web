@@ -5,7 +5,7 @@
         ['Market Intelligence', route('home').'#intelligence'],
         ['For Buyers', route('home').'#audiences'],
         ['For Owners', route('home').'#audiences'],
-        ['About', route('home').'#mission'],
+        ['About', route('about')],
     ];
 @endphp
 <header
@@ -25,10 +25,26 @@
             @foreach ($links as [$label, $href])
                 <a href="{{ $href }}" class="rounded transition hover:text-gold-soft">{{ $label }}</a>
             @endforeach
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-1.5 rounded font-medium text-gold transition hover:text-gold-soft">
+                <span>Dashboard</span>
+                <span class="rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-gold">Preview</span>
+            </a>
         </nav>
 
         <div class="hidden items-center gap-4 lg:flex">
-            <x-button href="{{ route('home') }}#early-access" class="!px-5 !py-2.5">Get Early Access</x-button>
+            @auth
+                <a href="{{ route('dashboard') }}" class="flex items-center gap-2 text-sm font-semibold text-ivory transition hover:text-gold">
+                    <span class="grid size-8 place-items-center rounded-full border border-gold/40 bg-emerald text-xs font-bold text-ivory">{{ strtoupper(mb_substr(Auth::user()->name ?: 'U', 0, 1)) }}</span>
+                    <span>Dashboard</span>
+                </a>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="rounded text-xs text-ivory/70 transition hover:text-ivory">Log out</button>
+                </form>
+            @else
+                <button type="button" @click="$dispatch('open-auth', { mode: 'login' })" class="rounded text-sm font-medium text-ivory/85 transition hover:text-gold">Log In</button>
+                <button type="button" @click="$dispatch('open-auth', { mode: 'register' })" class="inline-flex items-center justify-center gap-2 rounded-full bg-gold px-5 py-2.5 text-sm font-semibold text-forest-deep shadow-md shadow-gold/20 transition hover:-translate-y-0.5 hover:bg-gold-soft active:translate-y-0">Get Started <span aria-hidden="true">&rarr;</span></button>
+            @endauth
         </div>
 
         <button
@@ -49,7 +65,22 @@
             @foreach ($links as [$label, $href])
                 <a href="{{ $href }}" @click="open = false" class="border-b border-ivory/10 py-3.5 text-base">{{ $label }}</a>
             @endforeach
+            <a href="{{ route('dashboard') }}" @click="open = false" class="flex items-center justify-between border-b border-ivory/10 py-3.5 text-base font-medium text-gold">
+                <span>Dashboard</span>
+                <span class="rounded bg-gold/20 px-2 py-0.5 text-xs font-bold uppercase text-gold">Preview</span>
+            </a>
         </nav>
-        <x-button href="{{ route('home') }}#early-access" @click="open = false" class="mt-5 w-full">Get Early Access</x-button>
+        <div class="mt-5 flex flex-col gap-3">
+            @auth
+                <a href="{{ route('dashboard') }}" class="w-full rounded-full bg-gold py-3 text-center text-sm font-semibold text-forest-deep">Go to Dashboard &rarr;</a>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="w-full rounded-full border border-ivory/25 py-2.5 text-sm font-semibold text-ivory">Log out</button>
+                </form>
+            @else
+                <button type="button" @click="open = false; $dispatch('open-auth', { mode: 'register' })" class="w-full rounded-full bg-gold py-3 text-sm font-semibold text-forest-deep">Get Started &rarr;</button>
+                <button type="button" @click="open = false; $dispatch('open-auth', { mode: 'login' })" class="w-full rounded-full border border-ivory/25 py-2.5 text-sm font-semibold text-ivory">Log In</button>
+            @endauth
+        </div>
     </div>
 </header>

@@ -16,6 +16,7 @@ class HomepageTest extends TestCase
             ->assertSee('next keeper.', false)
             ->assertSee('id="audiences"', false)
             ->assertSee('id="early-access"', false)
+            ->assertSee('id="mission"', false)
             ->assertSee('Sample data');
     }
 

@@ -11,6 +11,11 @@ class PageController extends Controller
         return view('home');
     }
 
+    public function about(): View
+    {
+        return view('pages.about');
+    }
+
     public function privacy(): View
     {
         return view('pages.privacy');

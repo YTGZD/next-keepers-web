@@ -6,7 +6,8 @@
         ['Market Intelligence', route('home').'#intelligence'],
         ['For Buyers', route('home').'#audiences'],
         ['For Owners', route('home').'#audiences'],
-        ['About', route('home').'#mission'],
+        ['Dashboard Preview', route('dashboard')],
+        ['About', route('about')],
     ];
     $icons = [
         'linkedin' => ['LinkedIn', 'M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9.75h3.96V21H3V9.75zm6.44 0h3.8v1.54h.05c.53-.95 1.82-1.95 3.75-1.95 4 0 4.74 2.5 4.74 5.75V21h-3.96v-5.17c0-1.23-.02-2.82-1.8-2.82-1.8 0-2.07 1.35-2.07 2.73V21H9.44V9.75z'],

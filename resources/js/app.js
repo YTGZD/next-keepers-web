@@ -87,3 +87,14 @@ if ('IntersectionObserver' in window) {
 } else {
     targets.forEach((el) => el.classList.add('is-visible'));
 }
+
+// Dashboard write actions return 401 for guests (the preview is read-only):
+// open the sign-up dialog instead of failing silently.
+const nativeFetch = window.fetch.bind(window);
+window.fetch = async (...args) => {
+    const response = await nativeFetch(...args);
+    if (response.status === 401) {
+        window.dispatchEvent(new CustomEvent('open-auth', { detail: { mode: 'register' } }));
+    }
+    return response;
+};

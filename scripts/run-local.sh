@@ -21,6 +21,7 @@ composer install --no-interaction --prefer-dist
 grep -q '^APP_KEY=.\+' .env || php artisan key:generate --ansi
 mkdir -p database && [ -f database/database.sqlite ] || touch database/database.sqlite
 php artisan migrate --force --no-interaction
+php artisan db:seed --force --no-interaction
 npm install --no-audit --no-fund
 npm run build
 

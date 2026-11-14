@@ -33,7 +33,7 @@
                         </span>
                         <h3 class="text-center font-display text-xl text-forest">{{ $title }}</h3>
                         <p class="mt-1 text-center text-[13px] leading-snug text-ink/75">{{ $text }}</p>
-                        <a href="#early-access" @click="$dispatch('set-interest', '{{ $key }}')" class="mt-3 flex items-center justify-center gap-1.5 rounded text-[13px] font-semibold text-emerald transition hover:text-forest">
+                        <a href="{{ $key === 'owner' ? '#early-access' : ($key === 'buyer' ? route('discover') : route('market.intelligence')) }}" @if ($key === 'owner') @click="$dispatch('set-interest', '{{ $key }}')" @endif class="mt-3 flex items-center justify-center gap-1.5 rounded text-[13px] font-semibold text-emerald transition hover:text-forest">
                             {{ $cta }} <span aria-hidden="true" class="transition group-hover:translate-x-1">&rarr;</span>
                         </a>
                     </div>

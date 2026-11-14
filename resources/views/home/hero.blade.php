@@ -1,4 +1,4 @@
-<section class="relative isolate overflow-hidden bg-forest-deep text-ivory">
+<section x-data class="relative isolate overflow-hidden bg-forest-deep text-ivory">
     {{-- ambient light behind the map --}}
     <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
         <div class="absolute -right-40 top-0 h-[42rem] w-[60rem] rounded-full bg-emerald/30 blur-3xl"></div>
@@ -19,11 +19,17 @@
             </p>
 
             <div data-reveal style="--reveal-delay: 240ms" class="mt-9 flex flex-wrap items-center gap-4">
-                <x-button href="#early-access">Get Early Access <span aria-hidden="true">&rarr;</span></x-button>
-                <x-button variant="ghost" href="#platform">Explore the Platform</x-button>
+                <button
+                    type="button"
+                    @click="$dispatch('open-auth', { mode: 'register' })"
+                    class="inline-flex items-center justify-center gap-2 rounded-full bg-gold px-6 py-3 text-sm font-semibold text-forest-deep shadow-[0_8px_24px_-8px_rgba(201,155,67,0.7)] transition duration-200 hover:-translate-y-0.5 hover:bg-gold-soft active:translate-y-0"
+                >
+                    Get Started <span aria-hidden="true">&rarr;</span>
+                </button>
+                <x-button variant="ghost" href="{{ route('dashboard') }}">Explore the Dashboard</x-button>
             </div>
 
-            <p data-reveal style="--reveal-delay: 300ms" class="mt-5 text-xs text-ivory/55">Early access is open. We're building in public and will invite founding members first.</p>
+            <p data-reveal style="--reveal-delay: 300ms" class="mt-5 text-xs text-ivory/55">Create a free account, or explore the dashboard with illustrative sample data. No sign-up needed.</p>
         </div>
 
         <div class="relative lg:col-span-7 lg:-mr-10 xl:-mr-20">

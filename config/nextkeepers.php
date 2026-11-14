@@ -4,6 +4,9 @@ return [
     // Shown in the footer and privacy policy only when set in .env.
     'contact_email' => env('NK_CONTACT_EMAIL'),
 
+    // Shared read-only sample account behind the public dashboard preview.
+    'demo_email' => env('NK_DEMO_EMAIL', 'demo@nextkeepers.invalid'),
+
     // Footer social links render only for the URLs that are set.
     'social' => [
         'linkedin' => env('NK_LINKEDIN_URL'),
