@@ -23,19 +23,13 @@ npm run build                    # or `npm run dev` while developing
 php artisan serve                # http://127.0.0.1:8000
 ```
 
-## Deploying to a server
+## Deploying
 
-The app runs on any Ubuntu 22.04/24.04 server (currently an Oracle Cloud free-tier VM behind Cloudflare). One-time setup, as the normal login user:
+nextkeepers.com runs on an Ubuntu VM (Oracle Cloud) in Docker behind Traefik, which handles HTTPS. **Merging to `main` deploys**: a cron job on the server runs `auto-deploy.sh` every 2 minutes (versioned copy: `deploy/auto-deploy.sh`). When `main` has moved it backs up the SQLite database, rebuilds the container from the new code and restarts it; the container runs migrations and the sample-data seeder on start, so migrations and seeders must be safe to run unattended.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/YTGZD/next-keepers-web/main/deploy/setup-server.sh -o setup-server.sh
-APP_DOMAIN=app.nextkeepers.com bash setup-server.sh
-cd /var/www/next-keepers-web && php artisan nk:admin you@example.com
-```
+To see what is live, check the footer of the admin panel at `/admin` ("Live version <commit> <time>"). On the server: `ssh nextkeepers`, then `tail -50 ~/sites/nextkeepers/auto-deploy.log`.
 
-It installs PHP, Composer, Node and nginx, adds an nginx site for `APP_DOMAIN` (other sites are left alone), and installs a systemd timer that checks GitHub every 2 minutes and deploys new commits on `main` (`deploy/deploy.sh`). So **merging to `main` is deploying**. To see what is live, check the footer of the admin panel ("Live version <commit> <time>") or run `journalctl -u nk-deploy -n 50` on the server. Force a rebuild with `NK_FORCE=1 bash deploy/deploy.sh`.
-
-In Cloudflare, point an `A` record for the subdomain at the server's public IP with the proxy on; SSL mode "Full" or "Flexible" both work.
+Create an admin login on the server: `docker exec -it nextkeepers php artisan nk:admin you@example.com`.
 
 ## Tests
 
