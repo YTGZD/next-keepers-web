@@ -73,6 +73,36 @@ class Business extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Real listings never keep the sample defaults ("$1.8M", "2h ago", ...):
+        // display labels always follow the stored numbers.
+        static::saving(function (Business $business): void {
+            if (! $business->is_sample) {
+                $business->syncDisplayLabels();
+            }
+        });
+    }
+
+    public function syncDisplayLabels(): void
+    {
+        $money = fn (?int $amount): string => $amount === null ? 'Not disclosed' : self::formatCompactCurrency($amount);
+
+        $this->asking_price_label = $money($this->asking_price);
+        $this->revenue_label = $money($this->annual_revenue);
+        $this->sde_label = $money($this->earnings ?? $this->sde);
+        $margin = $this->metrics()->earningsMargin();
+        $this->margin_label = $margin === null ? 'Not disclosed' : round($margin * 100).'%';
+        $this->location = match (true) {
+            filled($this->city) && filled($this->state) => "{$this->city}, {$this->state}",
+            filled($this->county) && filled($this->state) => "{$this->county} County, {$this->state}",
+            filled($this->state) => $this->state,
+            default => 'Location not disclosed',
+        };
+        $this->listed_time_ago = $this->scraped_on ? 'Listed '.$this->scraped_on->format('M j, Y') : 'Date not disclosed';
+        $this->is_verified = (bool) $this->is_verified;
+    }
+
     /** Listings a buyer may see (published, not draft or archived). */
     public function scopeVisible(Builder $query): Builder
     {
@@ -130,16 +160,16 @@ class Business extends Model
     public static function formatCompactCurrency(int|float $amount): string
     {
         if ($amount >= 1_000_000_000) {
-            return '$' . rtrim(rtrim(number_format($amount / 1_000_000_000, 1), '0'), '.') . 'B';
+            return '$'.rtrim(rtrim(number_format($amount / 1_000_000_000, 1), '0'), '.').'B';
         }
         if ($amount >= 1_000_000) {
-            return '$' . rtrim(rtrim(number_format($amount / 1_000_000, 1), '0'), '.') . 'M';
+            return '$'.rtrim(rtrim(number_format($amount / 1_000_000, 1), '0'), '.').'M';
         }
         if ($amount >= 1_000) {
-            return '$' . round($amount / 1_000) . 'K';
+            return '$'.round($amount / 1_000).'K';
         }
 
-        return '$' . number_format($amount);
+        return '$'.number_format($amount);
     }
 
     public function toDashboardOpportunityArray(?int $calculatedFitScore = null): array
@@ -231,20 +261,20 @@ class Business extends Model
             'tags' => $this->tags ?? ['Profitable Business', 'Owner-Operated', 'Growth Opportunity'],
             'hero_image' => $this->hero_image,
             'revenue' => $this->revenue_label,
-            'revenue_growth' => '+' . rtrim(rtrim(number_format($this->revenue_growth_percent, 1), '0'), '.') . '%',
+            'revenue_growth' => '+'.rtrim(rtrim(number_format($this->revenue_growth_percent, 1), '0'), '.').'%',
             'sde' => $this->sde_label,
-            'sde_growth' => '+' . rtrim(rtrim(number_format($this->sde_growth_percent, 1), '0'), '.') . '%',
+            'sde_growth' => '+'.rtrim(rtrim(number_format($this->sde_growth_percent, 1), '0'), '.').'%',
             'asking_price' => $this->asking_price_label,
-            'sde_multiple' => number_format($this->sde_multiple, 1) . 'x',
+            'sde_multiple' => number_format($this->sde_multiple, 1).'x',
             'employees' => $this->employees,
             'founded' => (string) $this->established_year,
             'service_area' => $this->service_area,
             'annual_growth' => $this->annual_growth_label,
             'metrics' => [
-                ['label' => 'Annual Revenue', 'value' => $this->revenue_label, 'change' => '+' . round($this->revenue_growth_percent) . '%', 'icon' => 'chart', 'color' => 'emerald'],
-                ['label' => 'SDE', 'value' => $this->sde_label, 'change' => '+' . round($this->sde_growth_percent) . '%', 'icon' => 'coins', 'color' => 'emerald'],
+                ['label' => 'Annual Revenue', 'value' => $this->revenue_label, 'change' => '+'.round($this->revenue_growth_percent).'%', 'icon' => 'chart', 'color' => 'emerald'],
+                ['label' => 'SDE', 'value' => $this->sde_label, 'change' => '+'.round($this->sde_growth_percent).'%', 'icon' => 'coins', 'color' => 'emerald'],
                 ['label' => 'Asking Price', 'value' => $this->asking_price_label, 'change' => null, 'icon' => 'tag', 'color' => 'teal'],
-                ['label' => 'SDE Multiple', 'value' => number_format($this->sde_multiple, 1) . 'x', 'change' => null, 'icon' => 'calc', 'color' => 'blue'],
+                ['label' => 'SDE Multiple', 'value' => number_format($this->sde_multiple, 1).'x', 'change' => null, 'icon' => 'calc', 'color' => 'blue'],
                 ['label' => 'Employees', 'value' => (string) $this->employees, 'change' => null, 'icon' => 'users', 'color' => 'emerald'],
             ],
             'overview' => [
@@ -259,7 +289,7 @@ class Business extends Model
             'highlights' => [
                 ['label' => 'Founded', 'value' => (string) $this->established_year, 'icon' => 'calendar'],
                 ['label' => 'Employees', 'value' => (string) $this->employees, 'icon' => 'users'],
-                ['label' => 'Service Area', 'value' => $this->location . ' (' . $this->service_area . ')', 'icon' => 'pin'],
+                ['label' => 'Service Area', 'value' => $this->location.' ('.$this->service_area.')', 'icon' => 'pin'],
                 ['label' => 'Annual Growth', 'value' => $this->annual_growth_label, 'icon' => 'growth'],
             ],
             'financials' => $financialRows,
@@ -283,8 +313,8 @@ class Business extends Model
             'why_this_business' => $this->why_this_business ?? [
                 'Growing industry with stable demand',
                 'Strong financial performance',
-                'Strategic location in ' . $this->location,
-                'Excellent acquisition fit (' . $score . '/100)',
+                'Strategic location in '.$this->location,
+                'Excellent acquisition fit ('.$score.'/100)',
             ],
         ];
     }
