@@ -81,9 +81,14 @@ class AcquisitionPlatformBackendTest extends TestCase
         $this->assertSame('Free account', $user->membership_tier);
 
         // Brand-new accounts have no watchlist, messages or NDAs: nothing may be invented for them.
-        foreach (self::PAGES as $page) {
+        // They see real published listings only, never the sample preview rows.
+        $real = Business::factory()->published()->create(['name' => 'Real Published Dental Practice']);
+        foreach (array_diff(self::PAGES, ['/business/2']) as $page) {
             $this->get($page)->assertOk();
         }
+        $this->get('/business/2')->assertNotFound();
+        $this->get("/business/{$real->id}")->assertOk()->assertSee('Real Published Dental Practice')->assertSee('not verified', false);
+        $this->get('/discover')->assertSee('Real Published Dental Practice')->assertDontSee(Business::sample()->value('name'));
         $this->get('/settings')->assertSee('Ada Buyer')->assertDontSee('Verified Pro Buyer')->assertDontSee('Master NDA');
         $this->assertSame(0, WatchlistItem::where('user_id', $user->id)->count());
         $this->assertSame(0, MessageThread::where('user_id', $user->id)->count());
@@ -154,7 +159,8 @@ class AcquisitionPlatformBackendTest extends TestCase
     public function test_watchlist_toggle_and_remove_persist_in_database(): void
     {
         $user = User::factory()->create();
-        $business = Business::firstOrFail();
+        $business = Business::factory()->published()->create();
+        $this->actingAs($user)->postJson('/watchlist/toggle/'.Business::sample()->value('id'))->assertNotFound();
 
         $this->actingAs($user)->postJson("/watchlist/toggle/{$business->id}")->assertOk()->assertJson(['in_watchlist' => true]);
         $this->assertDatabaseHas('watchlist_items', ['user_id' => $user->id, 'business_id' => $business->id]);
@@ -170,7 +176,7 @@ class AcquisitionPlatformBackendTest extends TestCase
     public function test_business_inquiry_creates_inquiry_and_pipeline_deal_without_claiming_an_nda(): void
     {
         $user = User::factory()->create();
-        $business = Business::findOrFail(3);
+        $business = Business::factory()->published()->create();
 
         $this->actingAs($user)
             ->postJson("/business/{$business->id}/inquire", ['name' => 'Ada Buyer', 'email' => 'ada@example.com', 'type' => 'dossier'])
@@ -200,9 +206,13 @@ class AcquisitionPlatformBackendTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->actingAs($user)->postJson('/buy-box', ['industries' => ['HVAC', 'Manufacturing'], 'location' => 'Rochester, NY + 50 miles', 'profitable_only' => true])->assertOk();
+        $this->actingAs($user)->postJson('/buy-box', ['industries' => ['Healthcare', 'Manufacturing & Distribution'], 'states' => ['ny'], 'counties' => 'Erie County, monroe', 'max_asking_price' => 2000000, 'profitable_only' => true])->assertOk();
         $buyBox = BuyBox::where('user_id', $user->id)->firstOrFail();
-        $this->assertSame(['HVAC', 'Manufacturing'], $buyBox->industries);
+        $this->assertSame(['Healthcare', 'Manufacturing & Distribution'], $buyBox->industries);
+        $this->assertSame(['NY'], $buyBox->states);
+        $this->assertSame(['Erie', 'Monroe'], $buyBox->counties);
+        $this->assertSame(2000000, $buyBox->max_asking_price);
+        $this->actingAs($user)->postJson('/buy-box', ['industries' => ['Not An Industry']])->assertUnprocessable();
 
         $this->actingAs($user)->postJson('/settings/profile', ['name' => 'Ada Buyer', 'email' => $user->email, 'company' => 'Ada Holdings'])->assertOk();
         $this->assertSame('Ada Holdings', $user->fresh()->company);

@@ -10,6 +10,9 @@ class BuyBox extends Model
     protected $fillable = [
         'user_id',
         'industries',
+        'states',
+        'counties',
+        'min_earnings',
         'location',
         'radius_miles',
         'min_revenue',
@@ -36,6 +39,9 @@ class BuyBox extends Model
     {
         return [
             'industries' => 'array',
+            'states' => 'array',
+            'counties' => 'array',
+            'min_earnings' => 'integer',
             'radius_miles' => 'integer',
             'min_revenue' => 'integer',
             'max_revenue' => 'integer',

@@ -3,37 +3,54 @@
 namespace App\Http\Controllers;
 
 use App\Models\Business;
+use App\Models\BuyBox;
 use App\Models\Industry;
 use App\Models\Inquiry;
 use App\Models\Message;
 use App\Models\MessageThread;
 use App\Models\NewsletterSubscription;
 use App\Models\PipelineDeal;
-use App\Models\RegionalMarket;
+use App\Models\User;
 use App\Models\UserNotification;
 use App\Models\WatchlistItem;
 use App\Services\BuyBoxMatchingService;
+use App\Services\Listings\BuyBoxMatcher;
+use App\Services\Listings\ListingFeed;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
     public function __construct(
-        private readonly BuyBoxMatchingService $matchingService
+        private readonly BuyBoxMatchingService $matchingService,
+        private readonly ListingFeed $feed,
+        private readonly BuyBoxMatcher $matcher,
+        private readonly RealDashboardController $real,
     ) {}
+
+    /** Signed-in accounts see real listings; guests see the sample preview. */
+    private function showsReal(User $user): bool
+    {
+        return $this->feed->showsRealListings($user);
+    }
 
     public function index(Request $request): View
     {
         $user = $this->matchingService->resolveActiveUser();
         $buyBox = $this->matchingService->getOrCreateBuyBox($user);
+        if ($this->showsReal($user)) {
+            return $this->real->index($user, $buyBox);
+        }
 
         $userName = $user->name;
         $userEmail = $user->email;
 
-        $businesses = Business::where('status', 'active')
+        $businesses = $this->feed->for($user)
             ->orderByDesc('fit_score')
             ->get();
 
@@ -59,6 +76,7 @@ class DashboardController extends Controller
 
         $opportunities = $businesses->take(4)->map(function (Business $biz) use ($buyBox) {
             $eval = $this->matchingService->evaluate($biz, $buyBox);
+
             return $biz->toDashboardOpportunityArray($biz->fit_score ?: $eval['score']);
         })->values()->all();
 
@@ -102,13 +120,16 @@ class DashboardController extends Controller
     {
         $user = $this->matchingService->resolveActiveUser();
         $buyBox = $this->matchingService->getOrCreateBuyBox($user);
+        if ($this->showsReal($user)) {
+            return $this->real->show($user, $buyBox, $id);
+        }
 
         $userName = $user->name;
         $userEmail = $user->email;
 
-        // Drafts and archived listings are never shown, even by direct id.
-        $businessModel = Business::visible()->with(['financials', 'regionalMarket'])->find($id)
-            ?? Business::visible()->with(['financials', 'regionalMarket'])->firstOrFail();
+        // The preview only ever shows published sample rows, even by direct id.
+        $businessModel = $this->feed->for($user)->with(['financials', 'regionalMarket'])->find($id)
+            ?? $this->feed->for($user)->with(['financials', 'regionalMarket'])->firstOrFail();
 
         $business = $businessModel->toDetailArray();
 
@@ -133,18 +154,22 @@ class DashboardController extends Controller
     {
         $user = $this->matchingService->resolveActiveUser();
         $buyBox = $this->matchingService->getOrCreateBuyBox($user);
+        if ($this->showsReal($user)) {
+            return $this->real->buyBox($user, $buyBox);
+        }
 
         $userName = $user->name;
         $userEmail = $user->email;
 
         $criteria = $buyBox->toCriteriaArray();
 
-        $businesses = Business::where('status', 'active')
+        $businesses = $this->feed->for($user)
             ->orderByDesc('fit_score')
             ->get();
 
         $matches = $businesses->take(3)->map(function (Business $biz) use ($buyBox) {
             $eval = $this->matchingService->evaluate($biz, $buyBox);
+
             return $biz->toBuyBoxMatchArray($biz->fit_score ?: $eval['score'], $biz->criteria_met ?? $eval['criteria_met']);
         })->values()->all();
 
@@ -175,6 +200,9 @@ class DashboardController extends Controller
     {
         $user = $this->matchingService->resolveActiveUser();
         $buyBox = $this->matchingService->getOrCreateBuyBox($user);
+        if ($this->showsReal($user)) {
+            return $this->updateRealBuyBox($request, $buyBox);
+        }
 
         $validated = $request->validate([
             'industries' => ['nullable', 'array'],
@@ -203,6 +231,47 @@ class DashboardController extends Controller
         }
 
         return redirect()->route('buybox')->with('status', 'Buy Box criteria updated.');
+    }
+
+    /** Save the criteria real listings are matched on (see BuyBoxMatcher). */
+    private function updateRealBuyBox(Request $request, BuyBox $buyBox): JsonResponse|RedirectResponse
+    {
+        $money = ['nullable', 'integer', 'min:0', 'max:10000000000'];
+        $validated = $request->validate([
+            'industries' => ['nullable', 'array'],
+            'industries.*' => ['string', Rule::in(BuyBoxMatcher::INDUSTRIES)],
+            'states' => ['nullable', 'array', 'max:60'],
+            'states.*' => ['string', 'size:2', 'alpha'],
+            'counties' => ['nullable', 'string', 'max:500'],
+            'min_asking_price' => $money,
+            'max_asking_price' => $money,
+            'min_revenue' => $money,
+            'min_earnings' => $money,
+            'profitable_only' => ['nullable', 'boolean'],
+        ]);
+
+        $counties = collect(explode(',', (string) ($validated['counties'] ?? '')))
+            ->map(fn (string $c) => Str::title(trim(preg_replace('/\s+county$/i', '', trim($c)))))
+            ->filter()->unique()->take(30)->values()->all();
+
+        $buyBox->forceFill([
+            'industries' => array_values($validated['industries'] ?? []),
+            'states' => array_values(array_unique(array_map('strtoupper', $validated['states'] ?? []))),
+            'counties' => $counties,
+            'min_asking_price' => $validated['min_asking_price'] ?? null,
+            'max_asking_price' => $validated['max_asking_price'] ?? null,
+            'min_revenue' => $validated['min_revenue'] ?? null,
+            'min_earnings' => $validated['min_earnings'] ?? null,
+            'profitable_only' => (bool) ($validated['profitable_only'] ?? false),
+        ]);
+        $buyBox->location = $this->matcher->criteria($buyBox)['location'] ?? '';
+        $buyBox->save();
+
+        if ($request->expectsJson()) {
+            return response()->json(['status' => 'success', 'message' => 'Buy box saved.', 'criteria' => $this->matcher->criteria($buyBox)]);
+        }
+
+        return redirect()->route('buybox')->with('status', 'Buy box saved.');
     }
 
     public function marketIntelligence(Request $request): View
@@ -243,7 +312,7 @@ class DashboardController extends Controller
             ->get()
             ->map(fn (Industry $ind) => [
                 'name' => $ind->name,
-                'share' => number_format($ind->market_share_percent, 1) . '%',
+                'share' => number_format($ind->market_share_percent, 1).'%',
                 'icon' => $ind->icon,
                 'color' => $ind->color,
             ])
@@ -272,6 +341,9 @@ class DashboardController extends Controller
     public function watchlist(Request $request): View
     {
         $user = $this->matchingService->resolveActiveUser();
+        if ($this->showsReal($user)) {
+            return $this->real->watchlist($user, $this->matchingService->getOrCreateBuyBox($user));
+        }
         $userName = $user->name;
         $userEmail = $user->email;
 
@@ -289,7 +361,7 @@ class DashboardController extends Controller
 
         $metrics = [
             'saved_businesses' => max(count($items), 7),
-            'avg_fit_score' => $avgFit . '%',
+            'avg_fit_score' => $avgFit.'%',
             'total_value' => $totalAsking > 0 ? Business::formatCompactCurrency($totalAsking) : '$8.7M',
             'growth_rate' => '+12%',
         ];
@@ -307,7 +379,7 @@ class DashboardController extends Controller
     public function toggleWatchlist(Request $request, int $businessId): JsonResponse|RedirectResponse
     {
         $user = $this->matchingService->resolveActiveUser();
-        $business = Business::findOrFail($businessId);
+        $business = $this->feed->for($user)->findOrFail($businessId);
 
         $existing = WatchlistItem::where('user_id', $user->id)
             ->where('business_id', $business->id)
@@ -368,7 +440,7 @@ class DashboardController extends Controller
     public function togglePipeline(Request $request, int $businessId): JsonResponse|RedirectResponse
     {
         $user = $this->matchingService->resolveActiveUser();
-        $business = Business::findOrFail($businessId);
+        $business = $this->feed->for($user)->findOrFail($businessId);
 
         $existing = PipelineDeal::where('user_id', $user->id)
             ->where('business_id', $business->id)
@@ -401,7 +473,7 @@ class DashboardController extends Controller
     public function submitInquiry(Request $request, int $businessId): JsonResponse|RedirectResponse
     {
         $user = $this->matchingService->resolveActiveUser();
-        $business = Business::findOrFail($businessId);
+        $business = $this->feed->for($user)->findOrFail($businessId);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -441,10 +513,13 @@ class DashboardController extends Controller
     public function discover(Request $request): View
     {
         $user = $this->matchingService->resolveActiveUser();
+        if ($this->showsReal($user)) {
+            return $this->real->discover($request, $user, $this->matchingService->getOrCreateBuyBox($user));
+        }
         $userName = $user->name;
         $userEmail = $user->email;
 
-        $active = Business::where('status', 'active');
+        $active = $this->feed->for($user);
         $totalOpportunities = (clone $active)->count();
         $highFitCount = (clone $active)->where('fit_score', '>=', 80)->count();
         $avgFitScore = $totalOpportunities ? (int) round((clone $active)->avg('fit_score')).'' : '0';
@@ -462,7 +537,7 @@ class DashboardController extends Controller
             'search' => (string) $request->query('q', ''),
         ];
 
-        $query = Business::where('status', 'active');
+        $query = $this->feed->for($user);
 
         if ($search = trim((string) $request->query('q', ''))) {
             $query->where(function ($q) use ($search) {
@@ -523,7 +598,9 @@ class DashboardController extends Controller
         $profile = $user->toProfileArray();
 
         $stats = [
-            'active_buy_box_matches' => Business::where('status', 'active')->count(),
+            'active_buy_box_matches' => $this->showsReal($user)
+                ? $this->real->matchCount($user, $this->matchingService->getOrCreateBuyBox($user))
+                : $this->feed->for($user)->count(),
             'saved_opportunities' => WatchlistItem::where('user_id', $user->id)->count(),
             'viewed_deals' => (int) $user->viewed_deals_count,
             'inquiry_requests' => Inquiry::where('user_id', $user->id)->count(),
@@ -681,7 +758,7 @@ class DashboardController extends Controller
             'text' => ['required', 'string', 'max:4000'],
         ]);
 
-        $timeLabel = 'Today ' . now()->format('g:i A');
+        $timeLabel = 'Today '.now()->format('g:i A');
 
         $msg = Message::create([
             'message_thread_id' => $thread->id,

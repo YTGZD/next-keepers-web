@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Listings\BuyBoxMatcher;
 use App\Support\ListingMetrics;
 use Database\Factories\BusinessFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Business extends Model
 {
@@ -203,6 +205,61 @@ class Business extends Model
         }
 
         return '$'.number_format($amount);
+    }
+
+    /**
+     * A real listing as a card (dashboard, discover, buy box, watchlist).
+     * Only figures the listing discloses; anything missing reads "Not disclosed".
+     *
+     * @param  array{score: int|null, met: list<string>, unknown: list<string>, total: int}|null  $match
+     */
+    public function toRealCardArray(?array $match = null): array
+    {
+        $multiple = $this->metrics()->priceToEarnings();
+
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'location' => $this->location,
+            'location_note' => $this->locationNote(),
+            'industry' => $this->industry,
+            'sub_industry' => $this->sub_industry,
+            'asking' => $this->asking_price_label,
+            'revenue' => $this->revenue_label,
+            'earnings' => $this->sde_label,
+            'earnings_label' => $this->earningsLabel(),
+            'multiple' => $multiple === null ? 'Not disclosed' : number_format($multiple, 1).'x',
+            'margin' => $this->margin_label,
+            'excerpt' => $this->description ? Str::limit(strip_tags($this->description), 180) : null,
+            'source' => $this->source,
+            'listed' => $this->scraped_on?->format('M j, Y'),
+            'score' => $match['score'] ?? null,
+            'met' => $match['met'] ?? [],
+            'unknown_note' => $match ? BuyBoxMatcher::unknownNote($match['unknown']) : null,
+        ];
+    }
+
+    /** "Earnings (SDE)" style label from the listing's earnings basis. */
+    public function earningsLabel(): string
+    {
+        return match (true) {
+            $this->earnings_basis === null, $this->earnings_basis === 'None' => 'Earnings',
+            str_contains($this->earnings_basis, 'EBITDA') => 'EBITDA',
+            str_contains($this->earnings_basis, 'Cash Flow') => 'Cash flow',
+            default => $this->earnings_basis,
+        };
+    }
+
+    /** How precise the location is, when it is less than a city. */
+    public function locationNote(): ?string
+    {
+        // Describe what is shown, which is the most precise part the listing gives.
+        return match (true) {
+            filled($this->city) => null,
+            filled($this->county) => 'County-level location',
+            filled($this->state) => 'Only the state is disclosed',
+            default => null,
+        };
     }
 
     public function toDashboardOpportunityArray(?int $calculatedFitScore = null): array

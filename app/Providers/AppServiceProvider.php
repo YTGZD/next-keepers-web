@@ -2,11 +2,13 @@
 
 namespace App\Providers;
 
-use App\Models\Business;
+use App\Http\Controllers\RealDashboardController;
 use App\Models\MessageThread;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Models\WatchlistItem;
+use App\Services\BuyBoxMatchingService;
+use App\Services\Listings\ListingFeed;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
@@ -44,7 +46,10 @@ class AppServiceProvider extends ServiceProvider
         View::composer(['dashboard.partials.sidebar', 'dashboard.partials.topbar'], function ($view): void {
             $user = Auth::user() ?? User::where('email', config('nextkeepers.demo_email'))->first();
             $view->with('nav', [
-                'listings' => Business::where('status', 'active')->count(),
+                // Guests: sample rows in the preview. Accounts: real listings matching their buy box.
+                'listings' => ! $user ? 0 : (app(ListingFeed::class)->showsRealListings($user)
+                    ? app(RealDashboardController::class)->matchCount($user, app(BuyBoxMatchingService::class)->getOrCreateBuyBox($user))
+                    : app(ListingFeed::class)->for($user)->count()),
                 'watchlist' => $user ? WatchlistItem::where('user_id', $user->id)->count() : 0,
                 'unreadMessages' => $user ? MessageThread::where('user_id', $user->id)->where('unread', true)->count() : 0,
                 'unreadNotifications' => $user ? UserNotification::where('user_id', $user->id)->where('is_read', false)->count() : 0,
