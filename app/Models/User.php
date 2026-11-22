@@ -17,7 +17,6 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'role',
         'password',
         'phone',
         'title',
@@ -64,6 +63,12 @@ class User extends Authenticatable
             'notify_marketing' => 'boolean',
             'viewed_deals_count' => 'integer',
         ];
+    }
+
+    /** Admins manage listings and imports. The role is never mass-assignable; see `php artisan nk:admin`. */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
     }
 
     public function buyBox(): HasOne

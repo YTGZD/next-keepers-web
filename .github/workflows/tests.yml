@@ -3,8 +3,7 @@ name: Tests
 on:
   push:
     branches:
-      - master
-      - '*.x'
+      - main
   pull_request:
   schedule:
     - cron: '0 0 * * *'
@@ -35,6 +34,18 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
           coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Pages under test render through Vite, so the front end must be built first.
+      - name: Build front end
+        run: |
+          npm ci --ignore-scripts
+          npm run build
 
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress

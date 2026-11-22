@@ -12,6 +12,7 @@ Laravel 13, PHP 8.3, Blade, Tailwind CSS v4 (tokens in `resources/css/app.css`),
 - Build: `npm run build` (required before the app or its tests can render pages)
 - Test: `php artisan test`
 - Export signups: `php artisan signups:export`
+- Create or promote an admin (prompts for a password): `php artisan nk:admin you@example.com` (`--revoke` to undo). Admins can only be made this way; `users.role` is not mass-assignable.
 - Regenerate the hero map data: `node scripts/generate-us-map.mjs` (writes `resources/data/us-map.json`)
 
 ## Structure
@@ -20,6 +21,8 @@ Laravel 13, PHP 8.3, Blade, Tailwind CSS v4 (tokens in `resources/css/app.css`),
 - `resources/js/app.js`: Alpine components (`usMap`, `earlyAccess`) and scroll reveal.
 - `app/Http/Controllers/AuthController.php`: email + password login/register/logout. `/login` and `/register` redirect home with `?auth=login|register`, which opens the site-wide Alpine modal (`x-auth-modal`). POSTs are `guest`-guarded and throttled 6/min.
 - `app/Http/Controllers/DashboardController.php` + `resources/views/dashboard/*`: the buyer dashboard (dashboard, discover, business detail, buy box, market intelligence, watchlist, messages, settings). Layout: `x-layouts.dashboard`. Matching logic: `app/Services/BuyBoxMatchingService.php`.
+- `app/Models/Business.php`: one row per listing. Fictional preview rows have `is_sample = true`; real rows carry `listing_key` (unique, e.g. `bizbuysell:2535967`) and the fields of the cleaned listings workbook ("Clean Listings" sheet). New rows start as `status = draft`, `is_verified = false`; only `Business::visible()` statuses (active, under_loi, sold) are ever shown to buyers. Missing figures are `null` ("not disclosed"), never 0.
+- `app/Support/ListingMetrics.php`: multiples and ratios (`$business->metrics()`), mirroring the workbook's formula columns. Don't store derived ratios on the row.
 - `app/Http/Controllers/EarlyAccessController.php`: signup endpoint (JSON or normal POST, honeypot, throttle 5/min, upsert by email).
 
 ## Dashboard and auth model

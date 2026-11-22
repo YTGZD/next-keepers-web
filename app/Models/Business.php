@@ -2,63 +2,26 @@
 
 namespace App\Models;
 
+use App\Support\ListingMetrics;
+use Database\Factories\BusinessFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Business extends Model
 {
-    protected $fillable = [
-        'slug',
-        'name',
-        'short_name',
-        'tagline',
-        'description',
-        'overview_description',
-        'industry_id',
-        'industry',
-        'category',
-        'regional_market_id',
-        'city',
-        'state',
-        'location',
-        'service_area',
-        'established_year',
-        'employees',
-        'annual_growth_label',
-        'annual_revenue',
-        'revenue_label',
-        'revenue_growth_percent',
-        'sde',
-        'sde_label',
-        'sde_growth_percent',
-        'asking_price',
-        'asking_price_label',
-        'sde_multiple',
-        'profit_margin_percent',
-        'margin_label',
-        'is_profitable',
-        'is_owner_operated',
-        'is_absentee_owner',
-        'is_growing_market',
-        'is_verified',
-        'is_top_match',
-        'status',
-        'discover_tab',
-        'fit_score',
-        'hero_image',
-        'dashboard_image',
-        'watchlist_image',
-        'buybox_image',
-        'facility_image',
-        'tags',
-        'overview_checklist',
-        'why_this_business',
-        'criteria_met',
-        'fit_criteria',
-        'listed_time_ago',
-        'listed_at',
-    ];
+    /** @use HasFactory<BusinessFactory> */
+    use HasFactory;
+
+    /** Statuses a listing can be shown to buyers in. Drafts and archived rows never are. */
+    public const VISIBLE_STATUSES = ['active', 'under_loi', 'sold'];
+
+    public const STATUSES = ['draft', 'active', 'under_loi', 'sold', 'archived'];
+
+    /** Written only by seeders, the importer and the admin panel, never from buyer input. */
+    protected $guarded = ['id'];
 
     protected function casts(): array
     {
@@ -85,7 +48,53 @@ class Business extends Model
             'criteria_met' => 'array',
             'fit_criteria' => 'array',
             'listed_at' => 'datetime',
+            'is_sample' => 'boolean',
+            'scraped_on' => 'date',
+            'first_seen_at' => 'datetime',
+            'last_seen_at' => 'datetime',
+            'published_at' => 'datetime',
+            'price_disclosed' => 'boolean',
+            'cash_flow' => 'integer',
+            'ebitda' => 'integer',
+            'earnings' => 'integer',
+            'real_estate_value' => 'integer',
+            'ffe_value' => 'integer',
+            'inventory_value' => 'integer',
+            'monthly_rent' => 'integer',
+            'employees_full_time' => 'integer',
+            'employees_part_time' => 'integer',
+            'contractors' => 'integer',
+            'square_feet' => 'integer',
+            'lot_acres' => 'float',
+            'seller_financing_percent' => 'float',
+            'sba_mentioned' => 'boolean',
+            'qa_flags' => 'array',
+            'needs_review' => 'boolean',
         ];
+    }
+
+    /** Listings a buyer may see (published, not draft or archived). */
+    public function scopeVisible(Builder $query): Builder
+    {
+        return $query->whereIn('status', self::VISIBLE_STATUSES);
+    }
+
+    /** Fictional listings used by the public preview. */
+    public function scopeSample(Builder $query): Builder
+    {
+        return $query->where('is_sample', true);
+    }
+
+    /** Listings that came from a real source (imported or entered by an admin). */
+    public function scopeReal(Builder $query): Builder
+    {
+        return $query->where('is_sample', false);
+    }
+
+    /** Multiples and ratios derived from the listed figures. */
+    public function metrics(): ListingMetrics
+    {
+        return ListingMetrics::for($this);
     }
 
     public function industryRelation(): BelongsTo

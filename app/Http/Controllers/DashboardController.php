@@ -106,8 +106,9 @@ class DashboardController extends Controller
         $userName = $user->name;
         $userEmail = $user->email;
 
-        $businessModel = Business::with(['financials', 'regionalMarket'])->find($id)
-            ?? Business::with(['financials', 'regionalMarket'])->firstOrFail();
+        // Drafts and archived listings are never shown, even by direct id.
+        $businessModel = Business::visible()->with(['financials', 'regionalMarket'])->find($id)
+            ?? Business::visible()->with(['financials', 'regionalMarket'])->firstOrFail();
 
         $business = $businessModel->toDetailArray();
 
