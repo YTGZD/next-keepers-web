@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Listings\Pages;
 
+use App\Filament\Resources\Imports\ListingImportResource;
 use App\Filament\Resources\Listings\ListingResource;
 use App\Models\Business;
 use Filament\Actions\CreateAction;
@@ -16,6 +17,7 @@ class ListListings extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            ListingImportResource::importAction(),
             CreateAction::make()->label('Add listing'),
         ];
     }

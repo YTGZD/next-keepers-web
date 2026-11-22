@@ -56,7 +56,7 @@ class AdminPanelTest extends TestCase
 
         foreach (['/admin', '/admin/listings', '/admin/listings/create', "/admin/listings/{$listing->id}/edit",
             '/admin/users', "/admin/users/{$buyer->id}/edit", '/admin/early-access-signups', '/admin/inquiries',
-            "/admin/inquiries/{$inquiry->id}/edit", '/admin/newsletter-subscribers'] as $url) {
+            "/admin/inquiries/{$inquiry->id}/edit", '/admin/newsletter-subscribers', '/admin/imports'] as $url) {
             $this->get($url)->assertOk();
         }
     }
