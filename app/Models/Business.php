@@ -20,6 +20,24 @@ class Business extends Model
 
     public const STATUSES = ['draft', 'active', 'under_loi', 'sold', 'archived'];
 
+    /**
+     * Neutral values for real listings. The original table was built for the
+     * fictional preview, so its column defaults are sample claims ("8% growth",
+     * "owner-operated", a fit score of 88); a real listing starts without them.
+     */
+    public const REAL_LISTING_DEFAULTS = [
+        'service_area' => 'Not disclosed',
+        'annual_growth_label' => 'Not disclosed',
+        'revenue_growth_percent' => 0,
+        'sde_growth_percent' => 0,
+        'is_owner_operated' => false,
+        'is_absentee_owner' => false,
+        'is_growing_market' => false,
+        'is_top_match' => false,
+        'discover_tab' => 'new_listings',
+        'fit_score' => 0,
+    ];
+
     /** Written only by seeders, the importer and the admin panel, never from buyer input. */
     protected $guarded = ['id'];
 
@@ -77,6 +95,16 @@ class Business extends Model
     {
         // Real listings never keep the sample defaults ("$1.8M", "2h ago", ...):
         // display labels always follow the stored numbers.
+        static::creating(function (Business $business): void {
+            if (! $business->is_sample) {
+                foreach (self::REAL_LISTING_DEFAULTS as $attribute => $value) {
+                    if (! array_key_exists($attribute, $business->getAttributes())) {
+                        $business->setAttribute($attribute, $value);
+                    }
+                }
+            }
+        });
+
         static::saving(function (Business $business): void {
             if (! $business->is_sample) {
                 $business->syncDisplayLabels();
@@ -93,6 +121,11 @@ class Business extends Model
         $this->sde_label = $money($this->earnings ?? $this->sde);
         $margin = $this->metrics()->earningsMargin();
         $this->margin_label = $margin === null ? 'Not disclosed' : round($margin * 100).'%';
+        // Stored copies of derived figures, for the columns the older views read.
+        $multiple = $this->metrics()->priceToEarnings();
+        $this->sde_multiple = $multiple === null ? 0 : min(round($multiple, 2), 99.99);
+        $this->profit_margin_percent = $margin === null ? 0 : max(min(round($margin * 100, 2), 999.99), -999.99);
+        $this->is_profitable = $this->earnings !== null && $this->earnings > 0;
         $this->location = match (true) {
             filled($this->city) && filled($this->state) => "{$this->city}, {$this->state}",
             filled($this->county) && filled($this->state) => "{$this->county} County, {$this->state}",
