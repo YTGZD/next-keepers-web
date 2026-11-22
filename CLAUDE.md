@@ -29,7 +29,8 @@ Laravel 13, PHP 8.3, Blade, Tailwind CSS v4 (tokens in `resources/css/app.css`),
 - `app/Http/Controllers/EarlyAccessController.php`: signup endpoint (JSON or normal POST, honeypot, throttle 5/min, upsert by email).
 
 ## Dashboard and auth model
-- Guests see a **read-only preview** backed by one seeded sample account (`NK_DEMO_EMAIL`, default `demo@nextkeepers.invalid`, random unusable password; nobody can log in as it). Without the seed the dashboard returns 503 with the seed command.
+- Guests see a **read-only preview** of the fictional sample rows only. Signed-in accounts see only real, published listings (`App\Services\Listings\ListingFeed`; pages in `resources/views/dashboard/real/`, controller `RealDashboardController`), matched on their buy box by `BuyBoxMatcher` (industry, states, counties, price, revenue, earnings, profitable). Undisclosed figures never count against a listing, and the fit score is the share of criteria known to be met. Sample and real rows never mix. New accounts start with an empty buy box. Market intelligence, messages and settings still carry sample content for everyone.
+- The guest preview is backed by one seeded sample account (`NK_DEMO_EMAIL`, default `demo@nextkeepers.invalid`, random unusable password; nobody can log in as it). Without the seed the dashboard returns 503 with the seed command.
 - Registered users see their own profile, buy box, watchlist, pipeline, messages and notifications. Every write route (POST/DELETE) is behind the `auth` middleware; a 401 from `fetch` opens the auth modal (`app.js`).
 - New accounts start as "Free account", "No NDA on file", no verification, no 2FA. Never add default "Verified"/NDA/SBA/2FA claims to migrations, models or seeders.
 - Listings, market figures and the demo user's messages are fictional seed data. The dashboard shows an "Illustrative sample data" banner; keep it. Do not bake stats into images (header art is `public/images/dashboard/mountain-clean.jpg`).

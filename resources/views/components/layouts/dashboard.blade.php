@@ -22,13 +22,22 @@
             @include('dashboard.partials.topbar')
 
             {{-- Main Dashboard Content --}}
-            <div x-data class="border-b border-gold/30 bg-[#f7edd4] px-4 py-2.5 text-xs text-forest-deep sm:px-6 lg:px-8" role="note">
-                <strong>Illustrative sample data.</strong>
-                Listings, figures, messages and notifications in this dashboard are fictional and for preview only. Nothing here is a real business or a verified fact.
-                @guest
-                    <button type="button" @click="$dispatch('open-auth', { mode: 'register' })" class="ml-1 font-bold underline">Create a free account to save your own buy box &rarr;</button>
-                @endguest
-            </div>
+            @if (($data ?? 'sample') === 'real')
+                <div class="border-b border-forest/10 bg-white px-4 py-2.5 text-xs text-forest-deep sm:px-6 lg:px-8" role="note">
+                    <strong>Listed figures, not verified.</strong>
+                    Listings come from public business-for-sale listings. Prices and financials are as the seller or broker listed them; Next Keepers has not verified them. Always confirm with the broker.
+                </div>
+            @else
+                <div x-data class="border-b border-gold/30 bg-[#f7edd4] px-4 py-2.5 text-xs text-forest-deep sm:px-6 lg:px-8" role="note">
+                    <strong>Illustrative sample data.</strong>
+                    @auth
+                        Parts of this page are still fictional sample content for preview. Real listings are under Dashboard, Discover, My Buy Box and Watchlist.
+                    @else
+                        Listings, figures, messages and notifications in this dashboard are fictional and for preview only. Nothing here is a real business or a verified fact.
+                        <button type="button" @click="$dispatch('open-auth', { mode: 'register' })" class="ml-1 font-bold underline">Create a free account to save your own buy box &rarr;</button>
+                    @endauth
+                </div>
+            @endif
 
             <main class="flex-1 p-4 sm:p-6 lg:p-8">
                 {{ $slot }}

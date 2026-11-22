@@ -40,10 +40,16 @@ class ListingDataModelTest extends TestCase
         $this->seed(NextKeepersPlatformSeeder::class);
         $draft = Business::factory()->create(['name' => 'Secret Draft Dental Practice']);
 
+        $buyer = User::factory()->create();
         $this->get("/business/{$draft->id}")->assertOk()->assertDontSee('Secret Draft Dental Practice');
+        $this->actingAs($buyer)->get("/business/{$draft->id}")->assertNotFound();
 
         $draft->update(['status' => 'active']);
-        $this->get("/business/{$draft->id}")->assertOk()->assertSee('Secret Draft Dental Practice');
+        $this->actingAs($buyer)->get("/business/{$draft->id}")->assertOk()->assertSee('Secret Draft Dental Practice');
+
+        // Guests browse the sample preview only, even for a published real listing.
+        auth()->logout();
+        $this->get("/business/{$draft->id}")->assertOk()->assertDontSee('Secret Draft Dental Practice');
     }
 
     public function test_listing_keys_are_unique(): void

@@ -36,6 +36,21 @@ class BuyBoxMatchingService
      */
     public function getOrCreateBuyBox(User $user): BuyBox
     {
+        // Real accounts start with an empty buy box; only the preview account
+        // carries the sample criteria below.
+        if ($user->email !== config('nextkeepers.demo_email')) {
+            return BuyBox::firstOrCreate(['user_id' => $user->id], [
+                'industries' => [],
+                'location' => '',
+                'min_revenue' => null,
+                'max_revenue' => null,
+                'min_asking_price' => null,
+                'max_asking_price' => null,
+                'profitable_only' => false,
+                'growing_market' => false,
+            ]);
+        }
+
         return BuyBox::firstOrCreate(
             ['user_id' => $user->id],
             [
@@ -93,7 +108,7 @@ class BuyBoxMatchingService
             ->filter();
 
         $bizCategory = strtolower((string) $business->category);
-        $bizIndustryText = strtolower($business->industry . ' ' . $bizCategory . ' ' . $business->name);
+        $bizIndustryText = strtolower($business->industry.' '.$bizCategory.' '.$business->name);
         $industryMatched = $targetIndustries->isEmpty() || $targetIndustries->contains(
             fn (string $ind) => str_contains($bizIndustryText, $ind) || ($bizCategory !== '' && str_contains($ind, $bizCategory))
         );
