@@ -293,6 +293,9 @@ class ListingImporter
     public function rows(string $path, ?string $originalName = null): Generator
     {
         $extension = strtolower(pathinfo($originalName ?: $path, PATHINFO_EXTENSION));
+        if ($extension === 'xlsx' && ! class_exists(\ZipArchive::class)) {
+            throw new RuntimeException('This server cannot read .xlsx files yet (the PHP zip extension is missing). Upload the same data as a .csv file instead.');
+        }
         $reader = match ($extension) {
             'xlsx' => new XlsxReader,
             'csv', 'txt' => new CsvReader,
