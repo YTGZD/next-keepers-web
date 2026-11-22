@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\UserNotification;
 use App\Models\WatchlistItem;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -26,6 +27,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Admin area (listings, imports, users). Use with ->middleware('can:admin').
+        Gate::define('admin', fn (User $user): bool => $user->isAdmin());
+
         View::composer('*', function ($view): void {
             $data = $view->getData();
             if (! isset($data['userName'])) {

@@ -57,7 +57,6 @@ class AuthController extends Controller
             'name' => trim($data['name']),
             'email' => Str::lower(trim($data['email'])),
             'password' => $data['password'], // hashed by the model cast
-            'role' => 'buyer',
             'membership_tier' => 'Free account',
             'member_since' => now()->format('F Y'),
             'nda_status' => 'No NDA on file',

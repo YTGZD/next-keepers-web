@@ -29,7 +29,6 @@ class NextKeepersPlatformSeeder extends Seeder
             ['email' => config('nextkeepers.demo_email')],
             [
                 'name' => 'Sample Buyer',
-                'role' => 'buyer',
                 'password' => Hash::make(Str::random(64)),
                 'title' => 'Acquisition searcher (sample profile)',
                 'company' => 'Sample search fund',
@@ -123,7 +122,7 @@ class NextKeepersPlatformSeeder extends Seeder
                 'is_owner_operated' => true,
                 'is_absentee_owner' => false,
                 'is_growing_market' => true,
-                'is_verified' => true,
+                'is_verified' => false, // fictional listings are never verified
                 'is_top_match' => true,
                 'status' => 'active',
                 'discover_tab' => 'high_fit',
@@ -184,7 +183,7 @@ class NextKeepersPlatformSeeder extends Seeder
                 'is_owner_operated' => true,
                 'is_absentee_owner' => false,
                 'is_growing_market' => true,
-                'is_verified' => true,
+                'is_verified' => false, // fictional listings are never verified
                 'is_top_match' => false,
                 'status' => 'active',
                 'discover_tab' => 'new_listings',
@@ -245,7 +244,7 @@ class NextKeepersPlatformSeeder extends Seeder
                 'is_owner_operated' => true,
                 'is_absentee_owner' => false,
                 'is_growing_market' => true,
-                'is_verified' => true,
+                'is_verified' => false, // fictional listings are never verified
                 'is_top_match' => false,
                 'status' => 'active',
                 'discover_tab' => 'high_fit',
@@ -306,7 +305,7 @@ class NextKeepersPlatformSeeder extends Seeder
                 'is_owner_operated' => false,
                 'is_absentee_owner' => true,
                 'is_growing_market' => true,
-                'is_verified' => true,
+                'is_verified' => false, // fictional listings are never verified
                 'is_top_match' => false,
                 'status' => 'active',
                 'discover_tab' => 'high_fit',
@@ -367,7 +366,7 @@ class NextKeepersPlatformSeeder extends Seeder
                 'is_owner_operated' => true,
                 'is_absentee_owner' => false,
                 'is_growing_market' => true,
-                'is_verified' => true,
+                'is_verified' => false, // fictional listings are never verified
                 'is_top_match' => false,
                 'status' => 'active',
                 'discover_tab' => 'all',
@@ -401,6 +400,8 @@ class NextKeepersPlatformSeeder extends Seeder
         foreach ($businessesData as $bizData) {
             $financials = $bizData['financials'];
             unset($bizData['financials']);
+            // Every seeded listing is fictional preview data.
+            $bizData['is_sample'] = true;
 
             $biz = Business::updateOrCreate(['slug' => $bizData['slug']], $bizData);
             $businessesById[$biz->id] = $biz;
