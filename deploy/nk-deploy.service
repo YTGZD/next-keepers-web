@@ -1,0 +1,13 @@
+[Unit]
+Description=Deploy Next Keepers when main changes on GitHub
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=__DEPLOY_USER__
+Group=www-data
+UMask=0002
+WorkingDirectory=__APP_DIR__
+ExecStart=/usr/bin/env bash __APP_DIR__/deploy/deploy.sh
+TimeoutStartSec=900

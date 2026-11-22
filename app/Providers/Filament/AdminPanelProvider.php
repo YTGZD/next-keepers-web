@@ -11,12 +11,14 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
@@ -35,6 +37,7 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->brandName('Next Keepers Admin')
             ->defaultAvatarProvider(InitialsAvatarProvider::class)
+            ->renderHook(PanelsRenderHook::FOOTER, fn (): HtmlString => self::versionFooter())
             ->colors([
                 'primary' => Color::hex('#1B604A'),
                 'warning' => Color::hex('#C99B43'),
@@ -62,5 +65,14 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ]);
+    }
+
+    /** Which commit is live, written by deploy/deploy.sh to the BUILD file. */
+    public static function versionFooter(): HtmlString
+    {
+        $build = is_file(base_path('BUILD')) ? trim((string) file_get_contents(base_path('BUILD'))) : '';
+        $text = $build !== '' ? 'Live version '.$build : 'Local copy (not deployed)';
+
+        return new HtmlString('<p class="px-6 py-4 text-center text-xs text-gray-500">'.e($text).'</p>');
     }
 }
