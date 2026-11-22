@@ -13,6 +13,7 @@ Laravel 13, PHP 8.3, Blade, Tailwind CSS v4 (tokens in `resources/css/app.css`),
 - Test: `php artisan test`
 - Export signups: `php artisan signups:export`
 - Create or promote an admin (prompts for a password): `php artisan nk:admin you@example.com` (`--revoke` to undo). Admins can only be made this way; `users.role` is not mass-assignable.
+- Deploy: merging to `main` deploys. The server's `nk-deploy` systemd timer runs `deploy/deploy.sh` every 2 minutes (pull, composer/npm build, migrate, seed the sample preview, optimize, write `BUILD`). One-time server setup: `deploy/setup-server.sh` (Ubuntu, nginx, PHP-FPM pool `next-keepers` running as the deploy user, Cloudflare in front). Keep migrations safe to run unattended. The admin footer shows the live `BUILD`.
 - Regenerate the hero map data: `node scripts/generate-us-map.mjs` (writes `resources/data/us-map.json`)
 
 ## Structure

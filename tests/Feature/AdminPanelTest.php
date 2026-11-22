@@ -178,4 +178,17 @@ class AdminPanelTest extends TestCase
 
         $this->get('/admin/users')->assertOk()->assertDontSee(config('nextkeepers.demo_email'));
     }
+
+    public function test_the_admin_footer_shows_which_version_is_live(): void
+    {
+        $this->actingAs($this->admin());
+        $this->get('/admin')->assertOk()->assertSee('Local copy (not deployed)');
+
+        file_put_contents(base_path('BUILD'), "abc1234 2026-11-22 01:30 UTC\n");
+        try {
+            $this->get('/admin')->assertOk()->assertSee('Live version abc1234 2026-11-22 01:30 UTC');
+        } finally {
+            @unlink(base_path('BUILD'));
+        }
+    }
 }
