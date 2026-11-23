@@ -1,8 +1,7 @@
 <x-layouts.dashboard title="Market Intelligence | Next Keepers">
     <div class="space-y-6 max-w-7xl mx-auto pb-10" x-data="{
         timeRange: '3M',
-        selectedIndustry: 'Healthcare',
-        regionalTab: 'population'
+        selectedIndustry: 'Healthcare'
     }">
         {{-- Header with Time Range Filters --}}
         <section class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -232,39 +231,8 @@
 
         {{-- Bottom 3 Modules Row: Regional Insights + Market Overview + Key Insights --}}
         <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            {{-- Module 1 (Left, 5 cols): Regional Insights --}}
-            <div class="lg:col-span-5 rounded-3xl border border-forest/10 bg-white p-5 sm:p-6 shadow-sm flex flex-col justify-between">
-                <div>
-                    <h2 class="font-display text-base font-bold text-forest">Regional Insights</h2>
-
-                    {{-- Tabs --}}
-                    <div class="mt-3 flex flex-wrap gap-1.5 text-xs font-semibold">
-                        <button type="button" class="rounded-full bg-forest text-ivory px-3 py-1.5 shadow-sm">Population Growth</button>
-                        <button type="button" class="rounded-full bg-white text-forest/70 border border-forest/10 px-3 py-1.5 hover:border-gold transition">Housing Permits</button>
-                        <button type="button" class="rounded-full bg-white text-forest/70 border border-forest/10 px-3 py-1.5 hover:border-gold transition">Business Density</button>
-                        <button type="button" class="rounded-full bg-white text-forest/70 border border-forest/10 px-3 py-1.5 hover:border-gold transition">SBA Lending</button>
-                    </div>
-
-                    {{-- Map & Highlight Block --}}
-                    <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-                        <div class="rounded-2xl overflow-hidden bg-emerald/5 p-2 border border-forest/5">
-                            <img
-                                src="{{ asset('images/market/regional-map.png') }}"
-                                alt="Regional map shaded by growth"
-                                class="h-36 w-full object-contain"
-                            >
-                        </div>
-                        <div class="space-y-2 text-xs">
-                            <p class="text-sage font-medium">U.S. Population Growth</p>
-                            <p class="font-display text-2xl font-bold text-forest tabular">+0.8%</p>
-                            <p class="text-sage text-[11px]">(Last 12 Months)</p>
-                            <div class="rounded-xl bg-forest/5 p-2.5 text-[11px] text-forest font-medium">
-                                Strong growth in Sun Belt and Mountain West regions.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {{-- Module 1 (Left, 5 cols): Regional Insights, real state data --}}
+            @include('dashboard.partials.regional-insights', ['regional' => $regional])
 
             {{-- Module 2 (Center, 4 cols): Market Overview --}}
             <div class="lg:col-span-4 rounded-3xl border border-forest/10 bg-white p-5 sm:p-6 shadow-sm flex flex-col justify-between">

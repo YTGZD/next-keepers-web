@@ -1,6 +1,7 @@
 import Alpine from 'alpinejs';
 import dealBox from './deal-box';
 import industryBenchmarks from './industry-benchmarks';
+import regionalInsights from './regional-insights';
 
 window.Alpine = Alpine;
 
@@ -70,6 +71,7 @@ Alpine.data('earlyAccess', (initial = {}) => ({
 
 Alpine.data('dealBox', dealBox);
 Alpine.data('industryBenchmarks', industryBenchmarks);
+Alpine.data('regionalInsights', regionalInsights);
 
 Alpine.start();
 
