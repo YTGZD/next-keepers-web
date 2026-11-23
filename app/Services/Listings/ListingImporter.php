@@ -290,7 +290,16 @@ class ListingImporter
             'needs_review' => $yes('needs review'),
         ];
 
-        return array_intersect_key($attributes, array_flip(self::DATA_FIELDS));
+        $attributes = array_intersect_key($attributes, array_flip(self::DATA_FIELDS));
+
+        // The workbook's per-listing industry benchmark pick. Only set when the file gives one,
+        // so a file without the column never clears a pick made in the admin panel.
+        $benchmark = self::text($get('bbs subsector (override)'), 120);
+        if ($benchmark !== null) {
+            $attributes['benchmark_subsector'] = $benchmark;
+        }
+
+        return $attributes;
     }
 
     /**

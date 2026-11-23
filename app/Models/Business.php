@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\Listings\BuyBoxMatcher;
+use App\Support\ListingBenchmark;
 use App\Support\ListingMetrics;
 use Database\Factories\BusinessFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -236,6 +237,7 @@ class Business extends Model
             'score' => $match['score'] ?? null,
             'met' => $match['met'] ?? [],
             'unknown_note' => $match ? BuyBoxMatcher::unknownNote($match['unknown']) : null,
+            'benchmark' => ListingBenchmark::for($this),
         ];
     }
 
