@@ -84,6 +84,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasOne(BuyBox::class);
     }
 
+    public function dealBoxes(): HasMany
+    {
+        return $this->hasMany(DealBox::class);
+    }
+
     public function watchlistItems(): HasMany
     {
         return $this->hasMany(WatchlistItem::class);

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DealBoxController;
 use App\Http\Controllers\EarlyAccessController;
 use App\Http\Controllers\PageController;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,9 @@ Route::get('/settings', [DashboardController::class, 'settings'])->name('setting
 Route::middleware('auth')->group(function () {
     Route::post('/business/{businessId}/inquire', [DashboardController::class, 'submitInquiry'])->name('business.inquire');
     Route::post('/buy-box', [DashboardController::class, 'updateBuyBox'])->name('buybox.update');
+    Route::get('/buy-box/results', [DealBoxController::class, 'results'])->middleware('throttle:120,1')->name('dealbox.results');
+    Route::post('/deal-boxes', [DealBoxController::class, 'store'])->middleware('throttle:30,1')->name('dealbox.store');
+    Route::delete('/deal-boxes/{dealBox}', [DealBoxController::class, 'destroy'])->whereNumber('dealBox')->name('dealbox.destroy');
     Route::post('/watchlist/toggle/{businessId}', [DashboardController::class, 'toggleWatchlist'])->name('watchlist.toggle');
     Route::delete('/watchlist/{businessId}', [DashboardController::class, 'removeWatchlistItem'])->name('watchlist.remove');
     Route::post('/pipeline/toggle/{businessId}', [DashboardController::class, 'togglePipeline'])->name('pipeline.toggle');

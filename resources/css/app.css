@@ -81,3 +81,44 @@
     .js [data-reveal], .js [data-key] { opacity: 1 !important; transform: none !important; transition: none !important; }
     .animate-pulse-point, .animate-key-float { animation: none !important; }
 }
+
+/* Deal box sliders (/buy-box): forest track fill, round thumb, visible focus. */
+.deal-range {
+    appearance: none;
+    height: 1.25rem;
+    background: transparent;
+    cursor: pointer;
+}
+.deal-range::-webkit-slider-runnable-track {
+    height: 0.375rem;
+    border-radius: 9999px;
+    background: linear-gradient(to right, var(--color-forest) var(--fill, 0%), #d9dcd4 var(--fill, 0%));
+}
+.deal-range::-moz-range-track {
+    height: 0.375rem;
+    border-radius: 9999px;
+    background: linear-gradient(to right, var(--color-forest) var(--fill, 0%), #d9dcd4 var(--fill, 0%));
+}
+.deal-range::-webkit-slider-thumb {
+    appearance: none;
+    margin-top: -0.3125rem;
+    height: 1rem;
+    width: 1rem;
+    border-radius: 9999px;
+    background: var(--color-forest);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px var(--color-forest);
+}
+.deal-range::-moz-range-thumb {
+    height: 1rem;
+    width: 1rem;
+    border-radius: 9999px;
+    background: var(--color-forest);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px var(--color-forest);
+}
+.deal-range:focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+    border-radius: 9999px;
+}

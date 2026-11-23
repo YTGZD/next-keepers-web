@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Business;
 use App\Models\BuyBox;
+use App\Models\DealBox;
 use App\Models\User;
 use App\Models\WatchlistItem;
 use App\Services\Listings\BuyBoxMatcher;
+use App\Services\Listings\DealBoxCriteria;
 use App\Services\Listings\ListingFeed;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -151,19 +153,75 @@ class RealDashboardController extends Controller
     public function buyBox(User $user, BuyBox $box): View
     {
         $base = $this->feed->for($user);
-        $matches = $this->rankedMatches($user, $box);
+        $results = $this->dealBoxResults($user, $box);
+        $pairs = (clone $base)->whereNotNull('county')->whereNotNull('state')
+            ->distinct()->orderBy('state')->orderBy('county')->get(['state', 'county']);
 
         return view('dashboard.real.buy-box', [
             'userName' => $user->name,
             'userEmail' => $user->email,
-            'box' => $box,
-            'criteria' => $this->matcher->criteria($box),
-            'industryOptions' => BuyBoxMatcher::INDUSTRIES,
-            'stateOptions' => collect((clone $base)->distinct()->pluck('state'))->merge($box->states ?? [])->filter()->unique()->sort()->values()->all(),
-            'matchCount' => $this->matchCount($user, $box),
-            'cards' => $matches->take(20)->map(fn ($m) => $m['listing']->toRealCardArray($m['match']))->values()->all(),
-            'savedIds' => $this->savedIds($user),
+            ...$results,
+            'dealBox' => [
+                'criteria' => DealBoxCriteria::toArray($box),
+                'defaults' => DealBoxCriteria::DEFAULTS,
+                'boxes' => $this->savedBoxes($user),
+                'options' => [
+                    'industries' => BuyBoxMatcher::INDUSTRIES,
+                    'states' => collect((clone $base)->distinct()->pluck('state'))->merge($box->states ?? [])->filter()->unique()->sort()->values()->all(),
+                    'counties' => $pairs->map(fn ($p) => ['state' => $p->state, 'county' => $p->county])
+                        ->merge(collect($box->counties ?? [])->map(fn ($c) => ['state' => null, 'county' => $c]))
+                        ->unique('county')->values()->all(),
+                    'sources' => collect(DealBoxCriteria::SOURCES)->merge((clone $base)->distinct()->pluck('source'))->filter()->unique()->values()->all(),
+                ],
+                'urls' => [
+                    'results' => route('dealbox.results'),
+                    'save' => route('dealbox.store'),
+                    'delete' => url('/deal-boxes'),
+                ],
+            ],
         ]);
+    }
+
+    /**
+     * The deal box list: listings the criteria don't rule out, best fit first
+     * (or newest first when no criteria are set).
+     *
+     * @return array{matchCount: int, cards: list<array>, criteria: array<string, string>, savedIds: list<int>}
+     */
+    public function dealBoxResults(User $user, BuyBox $box, int $take = 20): array
+    {
+        $hasCriteria = $this->matcher->hasCriteria($box);
+        $listings = $this->matcher->apply($this->feed->for($user), $box)
+            ->orderByDesc('published_at')->orderByDesc('id')
+            ->limit($hasCriteria ? 500 : $take)
+            ->get();
+
+        $ranked = $listings
+            ->map(fn (Business $listing) => ['listing' => $listing, 'match' => $hasCriteria ? $this->matcher->evaluate($listing, $box) : null])
+            ->sortByDesc(fn ($m) => [
+                $m['match']['score'] ?? 0,
+                count(array_filter([$m['listing']->asking_price, $m['listing']->annual_revenue, $m['listing']->earnings], fn ($v) => $v !== null)),
+                $m['listing']->published_at?->timestamp ?? 0,
+            ])
+            ->values();
+
+        return [
+            'matchCount' => $this->matcher->apply($this->feed->for($user), $box)->count(),
+            'cards' => $ranked->take($take)->map(fn ($m) => $m['listing']->toRealCardArray($m['match']))->values()->all(),
+            'criteria' => $this->matcher->criteria($box),
+            'savedIds' => $this->savedIds($user),
+        ];
+    }
+
+    /** @return list<array{id: int, name: string, criteria: array}> */
+    public function savedBoxes(User $user): array
+    {
+        return DealBox::where('user_id', $user->id)->orderBy('name')->get()
+            ->map(fn (DealBox $b) => [
+                'id' => $b->id,
+                'name' => $b->name,
+                'criteria' => array_merge(DealBoxCriteria::DEFAULTS, array_intersect_key($b->criteria ?? [], DealBoxCriteria::DEFAULTS)),
+            ])->all();
     }
 
     public function watchlist(User $user, BuyBox $box): View
@@ -208,6 +266,12 @@ class RealDashboardController extends Controller
                 $m['listing']->published_at?->timestamp ?? 0,
             ])
             ->values();
+    }
+
+    /** The location line stored on the buy box (shown by older views). */
+    public function criteriaLocation(BuyBox $box): string
+    {
+        return $this->matcher->criteria($box)['location'] ?? '';
     }
 
     public function matchCount(User $user, BuyBox $box): int
