@@ -145,7 +145,7 @@
                 <div>
                     <div class="flex items-center justify-between border-b border-forest/5 pb-3">
                         <h2 class="font-display text-base font-bold text-forest">Industry Trends</h2>
-                        <a href="#industry-details" class="text-xs font-semibold text-emerald hover:text-forest transition">View Details &rarr;</a>
+                        <a href="#industry-benchmarks" class="text-xs font-semibold text-emerald hover:text-forest transition">View Details &rarr;</a>
                     </div>
 
                     {{-- Industry dropdown --}}
@@ -200,7 +200,7 @@
                 <div>
                     <div class="flex items-center justify-between border-b border-forest/5 pb-3">
                         <h2 class="font-display text-base font-bold text-forest">Top Industries</h2>
-                        <a href="#all-industries" class="text-xs font-semibold text-emerald hover:text-forest transition">View All &rarr;</a>
+                        <a href="#industry-benchmarks" class="text-xs font-semibold text-emerald hover:text-forest transition">View All &rarr;</a>
                     </div>
 
                     <div class="mt-4 space-y-3.5">
@@ -331,5 +331,7 @@
                 </div>
             </div>
         </section>
+
+        @include('dashboard.partials.industry-benchmarks', ['benchmarks' => $benchmarks])
     </div>
 </x-layouts.dashboard>

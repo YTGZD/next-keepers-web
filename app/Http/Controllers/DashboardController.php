@@ -17,6 +17,7 @@ use App\Services\BuyBoxMatchingService;
 use App\Services\Listings\BuyBoxMatcher;
 use App\Services\Listings\DealBoxCriteria;
 use App\Services\Listings\ListingFeed;
+use App\Support\IndustryBenchmarks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -302,13 +303,16 @@ class DashboardController extends Controller
         $mapFile = resource_path('data/us-map.json');
         $mapData = file_exists($mapFile) ? json_decode(file_get_contents($mapFile), true) : null;
 
+        $benchmarks = (new IndustryBenchmarks)->toArray();
+
         return view('dashboard.market-intelligence', compact(
             'userName',
             'userEmail',
             'kpis',
             'topIndustries',
             'keyInsights',
-            'mapData'
+            'mapData',
+            'benchmarks'
         ));
     }
 
