@@ -305,6 +305,11 @@ class DashboardController extends Controller
         $mapData = file_exists($mapFile) ? json_decode(file_get_contents($mapFile), true) : null;
 
         $benchmarks = (new IndustryBenchmarks)->toArray();
+        // ?industry=<BizBuySell subsector> opens the benchmark chart on that industry (linked from listings).
+        $requested = (string) $request->query('industry', '');
+        if ($requested !== '' && in_array($requested, array_column($benchmarks['rows'], 'subsector'), true)) {
+            $benchmarks['defaultIndustry'] = $requested;
+        }
         $regional = (new RegionalInsights)->toArray();
 
         return view('dashboard.market-intelligence', compact(

@@ -9,6 +9,7 @@ use App\Models\Business;
 use App\Models\ListingImport;
 use App\Services\Listings\ListingPhotos;
 use App\Services\Listings\ListingPublisher;
+use App\Support\ListingBenchmark;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -117,6 +118,10 @@ class ListingResource extends Resource
                 TextInput::make('sub_industry')->maxLength(100)->datalist(fn () => self::distinct('sub_industry')),
                 Select::make('industry_confidence')->options(['High' => 'High', 'Medium' => 'Medium', 'Low' => 'Low']),
                 TextInput::make('brand')->label('Brand / franchise')->maxLength(120),
+                Select::make('benchmark_subsector')->label('Benchmark industry (override)')
+                    ->options(fn () => array_combine(ListingBenchmark::subsectors(), ListingBenchmark::subsectors()))
+                    ->searchable()->columnSpan(2)
+                    ->helperText(fn (?Business $record) => self::benchmarkHelp($record)),
             ]),
             Section::make('Financials (as listed)')->columns(3)->components([
                 $money('asking_price', 'Asking price'),
@@ -137,6 +142,19 @@ class ListingResource extends Resource
                     TextEntry::make('m_cash')->label('Est. cash needed')->state(fn (Business $record) => self::dollars($record->metrics()->cashNeeded())),
                     TextEntry::make('m_goodwill')->label('Implied goodwill')->state(fn (Business $record) => self::dollars($record->metrics()->impliedGoodwill())),
                     TextEntry::make('m_rent')->label('Rent % of revenue')->state(fn (Business $record) => self::percent($record->metrics()->rentShareOfRevenue())),
+                ]),
+            Section::make('Industry benchmark')->description('What buyers see on the listing: its price / earnings (ex-real estate) next to the BizBuySell 2025 multiple for its industry.')
+                ->columns(4)->visibleOn('edit')->components([
+                    TextEntry::make('b_industry')->label('Compared with')
+                        ->state(fn (Business $record) => ListingBenchmark::for($record)['subsector'] ?? 'No benchmark'),
+                    TextEntry::make('b_match')->label('Match')->state(fn (Business $record) => ListingBenchmark::for($record)['match']),
+                    TextEntry::make('b_multiple')->label('Listing vs industry')
+                        ->state(fn (Business $record) => ListingBenchmark::for($record)['headline'] ?? 'n/a'),
+                    TextEntry::make('b_signal')->label('Signal')->badge()
+                        ->state(fn (Business $record) => ListingBenchmark::for($record)['signal_label'] ?? 'n/a')
+                        ->color(fn (Business $record) => self::signalColor(ListingBenchmark::for($record)['signal'] ?? null)),
+                    TextEntry::make('b_message')->label('Note shown to buyers')->columnSpanFull()
+                        ->state(fn (Business $record) => implode(' ', array_merge([ListingBenchmark::for($record)['message']], ListingBenchmark::for($record)['caveats']))),
                 ]),
             Section::make('Real estate, assets and lease')->columns(3)->collapsed()->components([
                 TextInput::make('real_estate')->maxLength(40),
@@ -201,6 +219,11 @@ class ListingResource extends Resource
                 TextColumn::make('annual_revenue')->label('Revenue')->money('USD', decimalPlaces: 0)->sortable()->placeholder('n/d'),
                 TextColumn::make('earnings')->money('USD', decimalPlaces: 0)->sortable()->placeholder('n/d'),
                 TextColumn::make('pe')->label('P/E')->state(fn (Business $record) => self::multiple($record->metrics()->priceToEarnings())),
+                TextColumn::make('vs_industry')->label('vs industry')->badge()->toggleable()
+                    ->state(fn (Business $record) => ListingBenchmark::for($record)['signal_label'] ?? null)
+                    ->color(fn (Business $record) => self::signalColor(ListingBenchmark::for($record)['signal'] ?? null))
+                    ->tooltip(fn (Business $record) => ListingBenchmark::for($record)['message'])
+                    ->placeholder('n/a'),
                 TextColumn::make('qa_flags')->label('QA flags')->badge()->separator(',')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')->since()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -352,6 +375,23 @@ class ListingResource extends Resource
     private static function distinct(string $column): array
     {
         return Business::real()->whereNotNull($column)->where($column, '!=', '')->distinct()->orderBy($column)->pluck($column)->all();
+    }
+
+    private static function benchmarkHelp(?Business $record): string
+    {
+        $default = ListingBenchmark::defaultFor($record?->sub_industry);
+        $base = $default && $default['subsector']
+            ? 'Leave empty to use the default for this sub-industry: '.$default['subsector'].' ('.$default['match'].').'
+            : 'Leave empty to use the default for the sub-industry.';
+
+        return $base.' Pick one when a listing fits a more specific industry, e.g. a gas station filed under grocery.';
+    }
+
+    private static function signalColor(?string $signal): string
+    {
+        return match ($signal) {
+            'below' => 'success', 'above' => 'warning', default => 'gray',
+        };
     }
 
     private static function multiple(?float $value, int $decimals = 1): string

@@ -1,0 +1,332 @@
+[
+ {
+  "sub_industry": "Restaurant",
+  "subsector": "Restaurants",
+  "match": "Exact",
+  "note": null
+ },
+ {
+  "sub_industry": "Pizzeria",
+  "subsector": "Restaurants",
+  "match": "Close",
+  "note": "BizBuySell has no separate pizzeria category"
+ },
+ {
+  "sub_industry": "Cafe / Coffee / Bakery",
+  "subsector": "Coffee Shops and Cafes",
+  "match": "Close",
+  "note": null
+ },
+ {
+  "sub_industry": "Bar / Tavern / Brewery",
+  "subsector": "Bars, Pubs and Taverns",
+  "match": "Close",
+  "note": null
+ },
+ {
+  "sub_industry": "Construction / Remodeling",
+  "subsector": "Other Building and Construction Businesses",
+  "match": "Close",
+  "note": null
+ },
+ {
+  "sub_industry": "Electrical / HVAC / Plumbing",
+  "subsector": "Electrical and Mechanical Contracting Businesses",
+  "match": "Close",
+  "note": null
+ },
+ {
+  "sub_industry": "Restoration / Cleaning",
+  "subsector": "Cleaning Businesses",
+  "match": "Close",
+  "note": null
+ },
+ {
+  "sub_industry": "Landscaping / Lawn / Snow",
+  "subsector": "Landscaping and Yard Service Businesses",
+  "match": "Exact",
+  "note": null
+ },
+ {
+  "sub_industry": "Property Management",
+  "subsector": "Property Management Businesses",
+  "match": "Exact",
+  "note": null
+ },
+ {
+  "sub_industry": "Repair / Collision / Parts",
+  "subsector": "Auto Repair and Service Shops",
+  "match": "Close",
+  "note": null
+ },
+ {
+  "sub_industry": "Car Wash",
+  "subsector": "Car Washes",
+  "match": "Exact",
+  "note": null
+ },
+ {
+  "sub_industry": "Dealership",
+  "subsector": "Car Dealerships",
+  "match": "Exact",
+  "note": null
+ },
+ {
+  "sub_industry": "Towing",
+  "subsector": "Towing Companies",
+  "match": "Exact",
+  "note": null
+ },
+ {
+  "sub_industry": "Grocery / Convenience / Gas",
+  "subsector": "Convenience Stores",
+  "match": "Close",
+  "note": "Gas station and grocery listings use overrides"
+ },
+ {
+  "sub_industry": "Liquor / Wine Store",
+  "subsector": "Liquor Stores",
+  "match": "Exact",
+  "note": null
+ },
+ {
+  "sub_industry": "Specialty Retail / Wholesale",
+  "subsector": "Other Retail Businesses",
+  "match": "Proxy",
+  "note": null
+ },
+ {
+  "sub_industry": "Clothing / Apparel",
+  "subsector": "Clothing and Accessory Stores",
+  "match": "Exact",
+  "note": null
+ },
+ {
+  "sub_industry": "Pharmacy",
+  "subsector": "Pharmacies",
+  "match": "Exact",
+  "note": null
+ },
+ {
+  "sub_industry": "E-commerce / Online Retail",
+  "subsector": "Websites and Ecommerce Businesses",
+  "match": "Exact",
+  "note": null
+ },
+ {
+  "sub_industry": "Electronics / Device Repair",
+  "subsector": "Cell Phone and Computer Repair and Service Businesses",
+  "match": "Close",
+  "note": null
+ },
+ {
+  "sub_industry": "IT / Cybersecurity / Software",
+  "subsector": "IT and Software Service Businesses",
+  "match": "Close",
+  "note": null
+ },
+ {
+  "sub_industry": "Chiropractic / Dental / Medical",
+  "subsector": "Medical Practices",
+  "match": "Close",
+  "note": "Dental listings use override"
+ },
+ {
+  "sub_industry": "Med Spa / Wellness / Weight Loss",
+  "subsector": "Spas",
+  "match": "Proxy",
+  "note": "Massage and weight-loss listings use overrides"
+ },
+ {
+  "sub_industry": "Home Care / Senior Care",
+  "subsector": "Home Health Care Businesses",
+  "match": "Exact",
+  "note": null
+ },
+ {
+  "sub_industry": "Veterinary",
+  "subsector": "Other Pet Service Businesses",
+  "match": "Proxy",
+  "note": "No veterinary category in the report"
+ },
+ {
+  "sub_industry": "Pet Services",
+  "subsector": "Dog Daycare and Boarding Businesses",
+  "match": "Close",
+  "note": "Grooming listing uses override"
+ },
+ {
+  "sub_industry": "Salon / Barber / Beauty",
+  "subsector": "Hair Salons and Barber Shops",
+  "match": "Close",
+  "note": null
+ },
+ {
+  "sub_industry": "Laundromat / Dry Cleaning",
+  "subsector": "Laundromats and Coin Laundry Businesses",
+  "match": "Close",
+  "note": null
+ },
+ {
+  "sub_industry": "Childcare / Preschool",
+  "subsector": "Day Care and Child Care Centers",
+  "match": "Close",
+  "note": null
+ },
+ {
+  "sub_industry": "Tutoring / Training / Schools",
+  "subsector": "Other Education and Children Businesses",
+  "match": "Close",
+  "note": "Driving school uses override"
+ },
+ {
+  "sub_industry": "Fitness / Recreation / Marine",
+  "subsector": "Other Entertainment and Recreation Businesses",
+  "match": "Proxy",
+  "note": "Bowling and boat listings use overrides"
+ },
+ {
+  "sub_industry": "Equipment / Party Rentals",
+  "subsector": "Equipment Rental and Dealers",
+  "match": "Close",
+  "note": null
+ },
+ {
+  "sub_industry": "Manufacturing / Fabrication",
+  "subsector": "Other Manufacturing Businesses",
+  "match": "Proxy",
+  "note": "Specific manufacturers use overrides"
+ },
+ {
+  "sub_industry": "Marketing / Printing / Publishing",
+  "subsector": "Paper Manufacturers and Printing Businesses",
+  "match": "Close",
+  "note": "Publication and sign listings use overrides"
+ },
+ {
+  "sub_industry": "Accounting / Tax / Bookkeeping",
+  "subsector": "Accounting Businesses and Tax Practices",
+  "match": "Exact",
+  "note": null
+ },
+ {
+  "sub_industry": "Insurance Agency",
+  "subsector": "Insurance Agencies",
+  "match": "Exact",
+  "note": null
+ },
+ {
+  "sub_industry": "Delivery / Trucking / Routes",
+  "subsector": "Routes",
+  "match": "Close",
+  "note": "UPS Store uses override"
+ },
+ {
+  "sub_industry": "Cannabis Dispensary/Processing",
+  "subsector": "Other Retail Businesses",
+  "match": "Proxy",
+  "note": "No cannabis category in the report"
+ },
+ {
+  "sub_industry": "Commercial / Mixed-use Property",
+  "subsector": null,
+  "match": "None",
+  "note": "Real estate, no business benchmark"
+ },
+ {
+  "sub_industry": "Food Truck / Mobile Food",
+  "subsector": "Food Trucks",
+  "match": "Exact",
+  "note": "Added with Monroe County (v5)"
+ },
+ {
+  "sub_industry": "Catering",
+  "subsector": "Catering Companies",
+  "match": "Exact",
+  "note": "Added with Monroe County (v5)"
+ },
+ {
+  "sub_industry": "Vending",
+  "subsector": "Vending Machine Businesses",
+  "match": "Exact",
+  "note": "Added with Monroe County (v5)"
+ },
+ {
+  "sub_industry": "Florist",
+  "subsector": "Flower Shops",
+  "match": "Exact",
+  "note": "Added with Monroe County (v5)"
+ },
+ {
+  "sub_industry": "Smoke / Vape Shop",
+  "subsector": "Smoke Shops",
+  "match": "Exact",
+  "note": "Added with Monroe County (v5)"
+ },
+ {
+  "sub_industry": "Waste / Dumpster Rental",
+  "subsector": "Waste Management and Recycling Businesses",
+  "match": "Exact",
+  "note": "Added with Monroe County (v5)"
+ },
+ {
+  "sub_industry": "Design / Architecture / Engineering",
+  "subsector": "Architecture and Engineering Firms",
+  "match": "Exact",
+  "note": "Added with Boston (v7)"
+ },
+ {
+  "sub_industry": "Liquor License Only",
+  "subsector": null,
+  "match": "None",
+  "note": "License-only sales (no business or premises); no business benchmark. Added with Boston (v7)"
+ },
+ {
+  "sub_industry": "Business Services (Other)",
+  "subsector": "Other Service Businesses",
+  "match": "Proxy",
+  "note": "Staffing, security, legal, travel and other services; overrides pick the exact BizBuySell subsector. Added with New York City (v8)"
+ },
+ {
+  "sub_industry": "Hotel / Motel / Lodging",
+  "subsector": "Hotels",
+  "match": "Close",
+  "note": "Added with New York City (v8)"
+ },
+ {
+  "sub_industry": "Unclassified",
+  "subsector": null,
+  "match": "None",
+  "note": "Category and title did not say what the business is; set the Sub-Industry by hand. Added with New York City (v8)"
+ },
+ {
+  "sub_industry": "Agriculture / Farming",
+  "subsector": "Other Agriculture Businesses",
+  "match": "Close",
+  "note": "Farms, ranches, nurseries and wineries. Added with BizScout (v10)"
+ },
+ {
+  "sub_industry": "SaaS / Software",
+  "subsector": "Software and App Companies",
+  "match": "Exact",
+  "note": "Software, SaaS and app businesses. Added with Acquisition Network (v11)"
+ },
+ {
+  "sub_industry": "Content / Online Media",
+  "subsector": "Other Online and Technology Businesses",
+  "match": "Proxy",
+  "note": "Content sites, newsletters, YouTube and social channels. Added with Acquisition Network (v11)"
+ },
+ {
+  "sub_industry": "Financial Services (Other)",
+  "subsector": "Other Financial Services Businesses",
+  "match": "Close",
+  "note": "Lending, payments, wealth and other financial firms. Added with Acquisition Network (v11)"
+ },
+ {
+  "sub_industry": "Wholesale / Distribution",
+  "subsector": "Other Wholesalers and Distributors",
+  "match": "Close",
+  "note": "Wholesalers, importers and distributors. Added with Acquisition Network (v11)"
+ }
+]

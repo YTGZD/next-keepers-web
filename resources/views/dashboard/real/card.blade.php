@@ -51,4 +51,18 @@
             <a href="{{ route('business.show', ['id' => $card['id']]) }}" class="rounded-xl bg-forest-deep px-3 py-2 font-semibold text-ivory transition hover:bg-forest focus:outline-none focus-visible:ring-2 focus-visible:ring-gold">View</a>
         </div>
     </dl>
+
+    @php($bm = $card['benchmark'] ?? null)
+    @if ($bm && $bm['status'] !== 'no_benchmark')
+        <div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl bg-ivory/60 px-3 py-2 text-[11px]">
+            @if ($bm['signal'])
+                @include('dashboard.real.partials.benchmark-signal', ['signal' => $bm['signal'], 'label' => $bm['signal_label']])
+            @endif
+            <span class="font-semibold text-forest tabular">{{ $bm['listing_pe'] === null ? 'Industry multiple '.\App\Support\ListingBenchmark::x($bm['industry_pe']) : 'Price / earnings '.$bm['headline'] }}</span>
+            <span class="text-sage">
+                {{ $bm['subsector'] }}, sold in {{ $bm['year'] }}@if ($bm['thin']) &middot; only {{ $bm['sales'] }} {{ $bm['sales'] === 1 ? 'sale' : 'sales' }}@endif
+                @if ($bm['listing_pe'] === null) &middot; this listing's multiple isn't disclosed @endif
+            </span>
+        </div>
+    @endif
 </article>

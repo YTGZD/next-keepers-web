@@ -60,6 +60,8 @@
             @endif
         </section>
 
+        @include('dashboard.real.partials.benchmark', ['bm' => $card['benchmark']])
+
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
             <section class="space-y-6 lg:col-span-8">
                 <div class="rounded-3xl border border-forest/10 bg-white p-6 shadow-sm">
