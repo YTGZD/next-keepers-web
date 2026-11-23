@@ -33,6 +33,17 @@ class BuyBox extends Model
         'owner_operated',
         'growing_market',
         'absentee_owner_ok',
+        'max_price_ex_re',
+        'max_multiple',
+        'min_years_in_business',
+        'sources',
+        'real_estate_pref',
+        'keyword',
+        'require_earnings',
+        'seller_financing_only',
+        'operating_only',
+        'hide_delisted',
+        'hide_out_of_county',
     ];
 
     protected function casts(): array
@@ -56,8 +67,24 @@ class BuyBox extends Model
             'owner_operated' => 'boolean',
             'growing_market' => 'boolean',
             'absentee_owner_ok' => 'boolean',
+            'max_price_ex_re' => 'integer',
+            'max_multiple' => 'float',
+            'min_years_in_business' => 'integer',
+            'sources' => 'array',
+            'require_earnings' => 'boolean',
+            'seller_financing_only' => 'boolean',
+            'operating_only' => 'boolean',
+            'hide_delisted' => 'boolean',
+            'hide_out_of_county' => 'boolean',
         ];
     }
+
+    /** Hygiene switches are on unless the buyer turns them off. */
+    protected $attributes = [
+        'operating_only' => true,
+        'hide_delisted' => true,
+        'hide_out_of_county' => true,
+    ];
 
     public function user(): BelongsTo
     {

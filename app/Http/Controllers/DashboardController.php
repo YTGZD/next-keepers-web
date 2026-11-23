@@ -15,13 +15,12 @@ use App\Models\UserNotification;
 use App\Models\WatchlistItem;
 use App\Services\BuyBoxMatchingService;
 use App\Services\Listings\BuyBoxMatcher;
+use App\Services\Listings\DealBoxCriteria;
 use App\Services\Listings\ListingFeed;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -236,34 +235,9 @@ class DashboardController extends Controller
     /** Save the criteria real listings are matched on (see BuyBoxMatcher). */
     private function updateRealBuyBox(Request $request, BuyBox $buyBox): JsonResponse|RedirectResponse
     {
-        $money = ['nullable', 'integer', 'min:0', 'max:10000000000'];
-        $validated = $request->validate([
-            'industries' => ['nullable', 'array'],
-            'industries.*' => ['string', Rule::in(BuyBoxMatcher::INDUSTRIES)],
-            'states' => ['nullable', 'array', 'max:60'],
-            'states.*' => ['string', 'size:2', 'alpha'],
-            'counties' => ['nullable', 'string', 'max:500'],
-            'min_asking_price' => $money,
-            'max_asking_price' => $money,
-            'min_revenue' => $money,
-            'min_earnings' => $money,
-            'profitable_only' => ['nullable', 'boolean'],
-        ]);
+        $validated = $request->validate(DealBoxCriteria::rules() + ['counties.*' => ['string', 'max:80']]);
 
-        $counties = collect(explode(',', (string) ($validated['counties'] ?? '')))
-            ->map(fn (string $c) => Str::title(trim(preg_replace('/\s+county$/i', '', trim($c)))))
-            ->filter()->unique()->take(30)->values()->all();
-
-        $buyBox->forceFill([
-            'industries' => array_values($validated['industries'] ?? []),
-            'states' => array_values(array_unique(array_map('strtoupper', $validated['states'] ?? []))),
-            'counties' => $counties,
-            'min_asking_price' => $validated['min_asking_price'] ?? null,
-            'max_asking_price' => $validated['max_asking_price'] ?? null,
-            'min_revenue' => $validated['min_revenue'] ?? null,
-            'min_earnings' => $validated['min_earnings'] ?? null,
-            'profitable_only' => (bool) ($validated['profitable_only'] ?? false),
-        ]);
+        $buyBox->forceFill(DealBoxCriteria::attributes($validated));
         $buyBox->location = $this->matcher->criteria($buyBox)['location'] ?? '';
         $buyBox->save();
 

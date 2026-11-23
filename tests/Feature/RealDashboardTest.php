@@ -56,7 +56,7 @@ class RealDashboardTest extends TestCase
         ])->assertRedirect(route('buybox'));
 
         $this->actingAs($user)->get('/buy-box')->assertOk()
-            ->assertSee('2 matches')
+            ->assertSee('2 listings fit this box')
             ->assertSee('Erie Dental')
             ->assertSee('Monroe Home Care')
             ->assertSee('Asking price not disclosed')

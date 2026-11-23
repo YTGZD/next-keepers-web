@@ -1,4 +1,5 @@
 import Alpine from 'alpinejs';
+import dealBox from './deal-box';
 
 window.Alpine = Alpine;
 
@@ -65,6 +66,8 @@ Alpine.data('earlyAccess', (initial = {}) => ({
         }
     },
 }));
+
+Alpine.data('dealBox', dealBox);
 
 Alpine.start();
 
