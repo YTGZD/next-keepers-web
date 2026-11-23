@@ -2,6 +2,8 @@
 @php($saved = $saved ?? false)
 <article class="rounded-3xl border border-forest/10 bg-white p-5 shadow-sm transition hover:border-forest/30 hover:shadow-md">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div class="flex min-w-0 flex-1 gap-4">
+        @include('dashboard.real.partials.photo', ['photo' => $card['photo'], 'industry' => $card['industry'], 'class' => 'h-20 w-24 shrink-0 rounded-2xl sm:h-24 sm:w-32'])
         <div class="min-w-0 flex-1 space-y-1.5">
             <p class="text-[11px] font-semibold uppercase tracking-wider text-sage">
                 {{ $card['industry'] }}@if ($card['sub_industry']) &middot; {{ $card['sub_industry'] }}@endif
@@ -17,6 +19,7 @@
             @if ($card['excerpt'])
                 <p class="pt-1 text-xs leading-relaxed text-ink/75 line-clamp-2">{{ $card['excerpt'] }}</p>
             @endif
+        </div>
         </div>
 
         @if ($card['score'] !== null)

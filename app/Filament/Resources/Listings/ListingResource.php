@@ -7,6 +7,7 @@ use App\Filament\Resources\Listings\Pages\EditListing;
 use App\Filament\Resources\Listings\Pages\ListListings;
 use App\Models\Business;
 use App\Models\ListingImport;
+use App\Services\Listings\ListingPhotos;
 use App\Services\Listings\ListingPublisher;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -14,6 +15,7 @@ use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
@@ -26,13 +28,18 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use RuntimeException;
 
 /**
  * Listings (the businesses table). Real listings arrive as drafts, get
@@ -95,6 +102,8 @@ class ListingResource extends Resource
                 Textarea::make('description')->rows(5)->columnSpanFull()
                     ->helperText('Kept admin-only until you decide how source text may be shown.'),
             ]),
+            Section::make('Photo')->description('Shown on the listing page and on buyers\' listing cards. Listings without a photo show a neutral placeholder.')
+                ->components([self::photoField()]),
             Section::make('Location')->columns(3)->components([
                 TextInput::make('state')->maxLength(10),
                 TextInput::make('county')->maxLength(80),
@@ -173,6 +182,9 @@ class ListingResource extends Resource
         return $table
             ->defaultSort('updated_at', 'desc')
             ->columns([
+                ImageColumn::make('photo')->label('')
+                    ->state(fn (Business $record) => $record->photoUrl(thumb: true))
+                    ->imageHeight(36)->extraImgAttributes(['class' => 'rounded-md', 'alt' => '']),
                 TextColumn::make('name')->label('Title')->searchable()->sortable()->limit(60)->grow()
                     ->description(fn (Business $record) => trim(($record->sub_industry ?: $record->industry).($record->is_sample ? ' · sample' : ''))),
                 TextColumn::make('status')->badge()->sortable()
@@ -215,6 +227,20 @@ class ListingResource extends Resource
             ])
             ->recordActions([
                 EditAction::make()->hidden(fn (Business $record) => $record->is_sample),
+                Action::make('photo')->iconButton()->icon(Heroicon::OutlinedPhoto)
+                    ->label(fn (Business $record) => $record->photo_path ? 'Change photo' : 'Add photo')
+                    ->tooltip(fn (Business $record) => $record->photo_path ? 'Change photo' : 'Add photo')
+                    ->color(fn (Business $record) => $record->photo_path ? 'primary' : 'gray')
+                    ->hidden(fn (Business $record) => $record->is_sample)
+                    ->modalHeading(fn (Business $record) => 'Photo for '.Str::limit($record->name, 60))
+                    ->modalWidth('lg')
+                    ->modalSubmitActionLabel('Save photo')
+                    ->fillForm(fn (Business $record) => ['photo_path' => $record->photo_path])
+                    ->schema([self::photoField()])
+                    ->action(function (Business $record, array $data): void {
+                        ListingPhotos::attach($record, $data['photo_path'] ?? null);
+                        Notification::make()->success()->title($record->photo_path ? 'Photo saved' : 'Photo removed')->send();
+                    }),
                 Action::make('publish')->label('Publish')->icon(Heroicon::OutlinedEye)->color('success')
                     ->visible(fn (Business $record) => ! $record->is_sample && ! in_array($record->status, Business::VISIBLE_STATUSES, true))
                     ->requiresConfirmation()
@@ -250,6 +276,37 @@ class ListingResource extends Resource
                         }),
                 ]),
             ]);
+    }
+
+    /**
+     * The listing photo upload. The browser shrinks big photos before sending
+     * them; the server then re-encodes a large size and a card thumbnail
+     * (App\Services\Listings\ListingPhotos). Removing the photo or saving a
+     * new one deletes the old files once the listing is saved.
+     */
+    public static function photoField(): FileUpload
+    {
+        return FileUpload::make('photo_path')->label('Listing photo')->hiddenLabel()
+            ->image()->imagePreviewHeight('240')
+            ->disk(ListingPhotos::DISK)
+            ->acceptedFileTypes(ListingPhotos::MIME_TYPES)
+            ->maxSize(ListingPhotos::MAX_KB)
+            ->imageResizeMode('contain')->imageResizeTargetWidth('2000')->imageResizeTargetHeight('2000')->imageResizeUpscale(false)
+            ->preventFilePathTampering(allowFilePathUsing: fn (string $file) => ListingPhotos::isOwnPath($file))
+            ->helperText('JPG, PNG or WebP, up to 10 MB. Photos are resized and their camera/location data removed.')
+            ->getUploadedFileUsing(fn (string $file) => ListingPhotos::isOwnPath($file) && Storage::disk(ListingPhotos::DISK)->exists($file) ? [
+                'name' => basename($file),
+                'size' => Storage::disk(ListingPhotos::DISK)->size($file),
+                'type' => Storage::disk(ListingPhotos::DISK)->mimeType($file),
+                'url' => ListingPhotos::url($file),
+            ] : null)
+            ->saveUploadedFileUsing(function (FileUpload $component, TemporaryUploadedFile $file): string {
+                try {
+                    return ListingPhotos::store($file);
+                } catch (RuntimeException $e) {
+                    throw ValidationException::withMessages([$component->getStatePath() => $e->getMessage()]);
+                }
+            });
     }
 
     public static function publish(Business $record, bool $notify = true): void
