@@ -6,6 +6,8 @@ use App\Filament\Resources\Listings\Pages\CreateListing;
 use App\Filament\Resources\Listings\Pages\EditListing;
 use App\Filament\Resources\Listings\Pages\ListListings;
 use App\Models\Business;
+use App\Models\ListingImport;
+use App\Services\Listings\ListingPublisher;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -30,7 +32,6 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 
 /**
@@ -206,6 +207,9 @@ class ListingResource extends Resource
                 Filter::make('county')
                     ->schema([TextInput::make('county')])
                     ->query(fn (Builder $query, array $data) => $query->when($data['county'] ?? null, fn (Builder $query, string $c) => $query->where('county', $c))),
+                SelectFilter::make('listing_import_id')->label('Import')
+                    ->options(fn () => ListingImport::where('dry_run', false)->latest('id')->limit(50)->get()
+                        ->mapWithKeys(fn (ListingImport $import) => [$import->id => $import->file_name.' · '.$import->created_at->format('M j, H:i')])->all()),
                 SelectFilter::make('industry')->options(fn () => array_combine(self::distinct('industry'), self::distinct('industry'))),
                 SelectFilter::make('sub_industry')->options(fn () => array_combine(self::distinct('sub_industry'), self::distinct('sub_industry'))),
             ])
@@ -227,14 +231,23 @@ class ListingResource extends Resource
                 BulkActionGroup::make([
                     BulkAction::make('publish')->label('Publish selected')->icon(Heroicon::OutlinedEye)->color('success')
                         ->requiresConfirmation()
-                        ->action(function (Collection $records): void {
-                            $real = $records->reject(fn (Business $b) => $b->is_sample);
-                            $real->each(fn (Business $b) => self::publish($b, notify: false));
-                            Notification::make()->success()->title("Published {$real->count()} listings")->send();
+                        ->modalDescription(fn (Builder $selectedRecordsQuery) => ListingPublisher::describe(ListingPublisher::counts($selectedRecordsQuery), 'in your selection')
+                            .' Selected listings that are already published or archived are left as they are.')
+                        ->schema([
+                            Toggle::make('include_flagged')->label('Include listings flagged "Needs review"')->default(false),
+                        ])
+                        ->deselectRecordsAfterCompletion()
+                        ->action(function (Builder $selectedRecordsQuery, array $data): void {
+                            $count = ListingPublisher::publish($selectedRecordsQuery, (bool) ($data['include_flagged'] ?? false));
+                            Notification::make()->success()->title('Published '.number_format($count).' '.($count === 1 ? 'listing' : 'listings'))->send();
                         }),
                     BulkAction::make('archive')->label('Archive selected')->icon(Heroicon::OutlinedArchiveBox)->color('danger')
                         ->requiresConfirmation()
-                        ->action(fn (Collection $records) => $records->reject(fn (Business $b) => $b->is_sample)->each->update(['status' => 'archived'])),
+                        ->deselectRecordsAfterCompletion()
+                        ->action(function (Builder $selectedRecordsQuery): void {
+                            $count = (clone $selectedRecordsQuery)->reorder()->where('is_sample', false)->where('status', '!=', 'archived')->update(['status' => 'archived', 'updated_at' => now()]);
+                            Notification::make()->success()->title('Archived '.number_format($count).' '.($count === 1 ? 'listing' : 'listings'))->send();
+                        }),
                 ]),
             ]);
     }

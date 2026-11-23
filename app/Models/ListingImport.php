@@ -16,6 +16,8 @@ class ListingImport extends Model
             'filters' => 'array',
             'problems' => 'array',
             'dry_run' => 'boolean',
+            'publish' => 'boolean',
+            'publish_flagged' => 'boolean',
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
         ];
@@ -42,7 +44,7 @@ class ListingImport extends Model
     {
         $verb = $this->dry_run ? 'would be ' : '';
 
-        return sprintf(
+        $line = sprintf(
             '%s rows read, %s matched the filters: %s %screated, %s %supdated, %s unchanged, %s skipped, %s failed.',
             number_format($this->rows_read),
             number_format($this->rows_matched),
@@ -52,5 +54,11 @@ class ListingImport extends Model
             number_format($this->skipped_count),
             number_format($this->failed_count),
         );
+
+        if ($this->publish && ! $this->dry_run && $this->status === 'done') {
+            $line .= ' '.number_format($this->published_count).' published right away.';
+        }
+
+        return $line;
     }
 }

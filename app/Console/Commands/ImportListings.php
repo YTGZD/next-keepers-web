@@ -4,12 +4,14 @@ namespace App\Console\Commands;
 
 use App\Models\ListingImport;
 use App\Services\Listings\ListingImporter;
+use App\Services\Listings\ListingPublisher;
 use Illuminate\Console\Command;
 
 /**
  * Server-side import for large files: copy the workbook (or a CSV export of
  * it) to the server, then run this. Same rules as the upload in the admin
- * panel: matched by Listing Key, new rows arrive as drafts.
+ * panel: matched by Listing Key, new rows arrive as drafts (or are published
+ * at the end with --publish).
  */
 class ImportListings extends Command
 {
@@ -21,6 +23,8 @@ class ImportListings extends Command
         {--industry=* : Only these industries (e.g. --industry=Healthcare)}
         {--source=* : Only these sources (e.g. --source=BizBuySell)}
         {--limit= : Stop after this many matching rows}
+        {--publish : Publish the new drafts as soon as the import finishes (rows flagged "Needs review" stay drafts)}
+        {--include-flagged : With --publish, also publish rows flagged "Needs review"}
         {--dry-run : Count what would change without writing anything}';
 
     protected $description = 'Import listings from the cleaned listings workbook (new rows arrive as drafts for review)';
@@ -55,6 +59,8 @@ class ImportListings extends Command
                 'source' => $this->option('source'),
             ]),
             'dry_run' => (bool) $this->option('dry-run'),
+            'publish' => (bool) $this->option('publish'),
+            'publish_flagged' => (bool) $this->option('publish') && (bool) $this->option('include-flagged'),
         ]);
 
         $this->info(($import->dry_run ? 'Dry run: ' : '').'reading '.basename($path).' ('.ListingImporter::PRESETS[$preset]['label'].')');
@@ -78,8 +84,10 @@ class ImportListings extends Command
         foreach (array_slice($import->problems ?? [], 0, 10) as $problem) {
             $this->line("  line {$problem['line']}: {$problem['message']}");
         }
-        if (! $import->dry_run && $import->created_count > 0) {
-            $this->line('New listings are drafts: review and publish them in the admin panel (Listings, Review queue).');
+        $left = $import->dry_run ? 0 : ListingPublisher::forImport($import)->where('status', 'draft')->count();
+        if ($left > 0) {
+            $this->line(number_format($left).' listings from this import are drafts: review them in the admin panel (Listings, Review queue),');
+            $this->line('or publish them all there with "Publish drafts" on the Imports page.');
         }
 
         return self::SUCCESS;

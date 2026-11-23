@@ -8,4 +8,9 @@ use Filament\Resources\Pages\ViewRecord;
 class ViewListingImport extends ViewRecord
 {
     protected static string $resource = ListingImportResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [ListingImportResource::publishDraftsAction()];
+    }
 }
