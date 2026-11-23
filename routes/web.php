@@ -4,7 +4,9 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DealBoxController;
 use App\Http\Controllers\EarlyAccessController;
+use App\Http\Controllers\ListingPhotoController;
 use App\Http\Controllers\PageController;
+use App\Services\Listings\ListingPhotos;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PageController::class, 'home'])->name('home');
@@ -28,6 +30,10 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/discover', [DashboardController::class, 'discover'])->name('discover');
 Route::get('/businesses', [DashboardController::class, 'discover'])->name('businesses');
+// Listing photos (storage/app/public/listings). Names are random 40-character tokens.
+Route::get('/listing-photos/{file}', ListingPhotoController::class)
+    ->where('file', ListingPhotos::FILE_PATTERN)
+    ->name('listing-photo');
 Route::get('/business/{id?}', [DashboardController::class, 'showBusiness'])->name('business.show');
 Route::get('/buy-box', [DashboardController::class, 'buyBox'])->name('buybox');
 Route::get('/market-intelligence', [DashboardController::class, 'marketIntelligence'])->name('market.intelligence');

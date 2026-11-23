@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\Listings\BuyBoxMatcher;
+use App\Services\Listings\ListingPhotos;
 use App\Support\ListingBenchmark;
 use App\Support\ListingMetrics;
 use Database\Factories\BusinessFactory;
@@ -111,6 +112,13 @@ class Business extends Model
         static::saving(function (Business $business): void {
             if (! $business->is_sample) {
                 $business->syncDisplayLabels();
+            }
+        });
+
+        // A replaced or removed photo leaves no orphan files behind.
+        static::updated(function (Business $business): void {
+            if ($business->wasChanged('photo_path')) {
+                ListingPhotos::delete($business->getOriginal('photo_path'));
             }
         });
     }
@@ -233,12 +241,19 @@ class Business extends Model
             'margin' => $this->margin_label,
             'excerpt' => $this->description ? Str::limit(strip_tags($this->description), 180) : null,
             'source' => $this->source,
+            'photo' => $this->photoUrl(thumb: true),
             'listed' => $this->scraped_on?->format('M j, Y'),
             'score' => $match['score'] ?? null,
             'met' => $match['met'] ?? [],
             'unknown_note' => $match ? BuyBoxMatcher::unknownNote($match['unknown']) : null,
             'benchmark' => ListingBenchmark::for($this),
         ];
+    }
+
+    /** URL of the photo an admin uploaded, or null when there is none. */
+    public function photoUrl(bool $thumb = false): ?string
+    {
+        return ListingPhotos::url($this->photo_path, $thumb);
     }
 
     /** "Earnings (SDE)" style label from the listing's earnings basis. */

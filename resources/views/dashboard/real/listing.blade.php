@@ -5,7 +5,11 @@
         @endif
         <a href="{{ route('discover') }}" class="inline-flex items-center gap-2 text-xs font-semibold text-emerald hover:text-forest">&larr; Back to listings</a>
 
-        <header class="rounded-3xl border border-forest/10 bg-white p-6 shadow-sm sm:p-8">
+        <header class="overflow-hidden rounded-3xl border border-forest/10 bg-white shadow-sm">
+            @if ($photo = $listing->photoUrl())
+                <img src="{{ $photo }}" alt="Photo of {{ $listing->name }}" decoding="async" class="aspect-[16/7] w-full bg-ivory object-cover">
+            @endif
+            <div class="p-6 sm:p-8">
             <p class="text-[11px] font-semibold uppercase tracking-wider text-sage">{{ $card['industry'] }}@if ($card['sub_industry']) &middot; {{ $card['sub_industry'] }}@endif</p>
             <h1 class="mt-1 font-display text-3xl font-medium tracking-tight text-forest sm:text-4xl">{{ $listing->name }}</h1>
             <p class="mt-2 text-sm text-sage">
@@ -35,6 +39,7 @@
                 </label>
                 <button type="submit" class="justify-self-start rounded-xl bg-gold px-4 py-2 text-xs font-bold text-forest-deep hover:bg-gold-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-forest">Send question</button>
             </form>
+            </div>
         </header>
 
         <section aria-labelledby="figures-heading" class="rounded-3xl border border-forest/10 bg-white p-6 shadow-sm">
