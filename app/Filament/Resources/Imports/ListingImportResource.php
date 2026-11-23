@@ -7,6 +7,7 @@ use App\Filament\Resources\Imports\Pages\ViewListingImport;
 use App\Jobs\RunListingImport;
 use App\Models\ListingImport;
 use App\Services\Listings\ListingImporter;
+use App\Services\Listings\ListingPublisher;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
@@ -18,6 +19,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -53,7 +55,7 @@ class ListingImportResource extends Resource
             ->label('Import listings')
             ->icon(Heroicon::OutlinedArrowUpTray)
             ->modalHeading('Import listings')
-            ->modalDescription('Upload the cleaned listings workbook (.xlsx, "Clean Listings" sheet) or a CSV export of it. Rows are matched by Listing Key: new ones arrive as drafts in the review queue, known ones get their figures refreshed. Nothing is published automatically.')
+            ->modalDescription('Upload the cleaned listings workbook (.xlsx, "Clean Listings" sheet) or a CSV export of it. Rows are matched by Listing Key: new ones arrive as drafts in the review queue, known ones get their figures refreshed. Turn on "Publish right away" to skip the review queue for this file.')
             ->modalSubmitActionLabel('Start import')
             ->schema([
                 FileUpload::make('file')
@@ -80,6 +82,16 @@ class ListingImportResource extends Resource
                     TagsInput::make('industry')->placeholder('e.g. Healthcare'),
                     TagsInput::make('source')->placeholder('e.g. BizBuySell'),
                 ]),
+                Toggle::make('publish')
+                    ->label('Publish right away')
+                    ->helperText('New listings go live as soon as the import finishes, instead of waiting in the review queue. You can still archive any of them later.')
+                    ->live()
+                    ->default(false),
+                Toggle::make('publish_flagged')
+                    ->label('Also publish listings flagged "Needs review"')
+                    ->helperText('Off: flagged rows stay drafts so you can check them first.')
+                    ->visible(fn (Get $get) => (bool) $get('publish'))
+                    ->default(false),
                 Toggle::make('dry_run')
                     ->label('Dry run: only count what would change')
                     ->default(false),
@@ -93,6 +105,38 @@ class ListingImportResource extends Resource
                     ->success()
                     ->send();
             });
+    }
+
+    /**
+     * "Publish drafts": publish every draft an import created or last refreshed,
+     * in one go. Used as a row action on the Imports table and on an import's page.
+     */
+    public static function publishDraftsAction(): Action
+    {
+        return Action::make('publishDrafts')
+            ->label('Publish drafts')
+            ->icon(Heroicon::OutlinedEye)
+            ->color('success')
+            ->visible(fn (ListingImport $record) => $record->status === 'done' && ! $record->dry_run
+                && ListingPublisher::drafts(ListingPublisher::forImport($record))->exists())
+            ->modalHeading(fn (ListingImport $record) => 'Publish drafts from '.$record->file_name)
+            ->modalDescription(fn (ListingImport $record) => ListingPublisher::describe(ListingPublisher::counts(ListingPublisher::forImport($record)), 'from this import'))
+            ->modalSubmitActionLabel('Publish')
+            ->schema([
+                Toggle::make('include_flagged')->label('Include listings flagged "Needs review"')->default(false),
+            ])
+            ->action(function (ListingImport $record, array $data): void {
+                $count = ListingPublisher::publish(ListingPublisher::forImport($record), (bool) ($data['include_flagged'] ?? false));
+                $record->increment('published_count', $count);
+
+                Notification::make()->success()->title('Published '.number_format($count).' '.($count === 1 ? 'listing' : 'listings'))->send();
+            });
+    }
+
+    /** Drafts still waiting from an import, for the table and the import page. */
+    public static function draftsLeft(ListingImport $record): int
+    {
+        return $record->dry_run ? 0 : ListingPublisher::drafts(ListingPublisher::forImport($record))->count();
     }
 
     /** Record the upload and run it once the response has been sent. */
@@ -111,6 +155,8 @@ class ListingImportResource extends Resource
                 'source' => $data['source'] ?? [],
             ]),
             'dry_run' => (bool) ($data['dry_run'] ?? false),
+            'publish' => (bool) ($data['publish'] ?? false),
+            'publish_flagged' => (bool) ($data['publish'] ?? false) && (bool) ($data['publish_flagged'] ?? false),
         ]);
 
         RunListingImport::dispatchAfterResponse($import->id);
@@ -134,11 +180,19 @@ class ListingImportResource extends Resource
             Section::make('Import')->columns(3)->components([
                 TextEntry::make('file_name')->label('File'),
                 TextEntry::make('status')->badge()->color(fn (string $state) => self::STATUS_COLORS[$state] ?? 'gray'),
-                TextEntry::make('dry_run')->label('Mode')->formatStateUsing(fn (bool $state) => $state ? 'Dry run (nothing written)' : 'Import'),
+                TextEntry::make('dry_run')->label('Mode')->state(fn (ListingImport $record) => match (true) {
+                    $record->dry_run => 'Dry run (nothing written)',
+                    $record->publish && $record->publish_flagged => 'Import and publish everything',
+                    $record->publish => 'Import and publish (flagged rows stay drafts)',
+                    default => 'Import (new rows wait in the review queue)',
+                }),
                 TextEntry::make('filters')->label('Rows')->state(fn (ListingImport $record) => self::presetLabel($record->filters)),
                 TextEntry::make('user.name')->label('By')->placeholder('Server command'),
                 TextEntry::make('created_at')->label('Started')->dateTime(),
                 TextEntry::make('summary')->label('Result')->columnSpanFull()->state(fn (ListingImport $record) => $record->summary()),
+                TextEntry::make('drafts_left')->label('Drafts still in the review queue')
+                    ->state(fn (ListingImport $record) => number_format(self::draftsLeft($record)))
+                    ->visible(fn (ListingImport $record) => $record->status === 'done' && ! $record->dry_run),
                 TextEntry::make('message')->columnSpanFull()->placeholder('None')->visible(fn (ListingImport $record) => filled($record->message)),
             ]),
             Section::make('Rows that need a look')->components([
@@ -159,15 +213,17 @@ class ListingImportResource extends Resource
                 TextColumn::make('created_at')->label('Started')->since()->sortable(),
                 TextColumn::make('file_name')->label('File')->limit(40),
                 TextColumn::make('filters')->label('Rows')->state(fn (ListingImport $record) => self::presetLabel($record->filters))->limit(40),
-                IconColumn::make('dry_run')->label('Dry run')->boolean(),
+                IconColumn::make('dry_run')->label('Dry run')->boolean()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')->badge()->color(fn (string $state) => self::STATUS_COLORS[$state] ?? 'gray'),
                 TextColumn::make('rows_matched')->label('Matched')->numeric(),
                 TextColumn::make('created_count')->label('New')->numeric(),
                 TextColumn::make('updated_count')->label('Updated')->numeric(),
-                TextColumn::make('failed_count')->label('Failed')->numeric(),
-                TextColumn::make('user.name')->label('By')->placeholder('Server command'),
+                TextColumn::make('failed_count')->label('Failed')->numeric()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('published_count')->label('Published')->numeric(),
+                TextColumn::make('drafts_left')->label('Drafts left')->state(fn (ListingImport $record) => self::draftsLeft($record))->numeric(),
+                TextColumn::make('user.name')->label('By')->placeholder('Server command')->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->recordActions([ViewAction::make()]);
+            ->recordActions([self::publishDraftsAction(), ViewAction::make()]);
     }
 
     public static function canCreate(): bool

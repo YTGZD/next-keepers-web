@@ -21,7 +21,9 @@ use Throwable;
  *
  * - Rows are matched by "Listing Key": a new key creates a draft, a known key
  *   refreshes the listed data. Review state (status, verification, admin
- *   notes, publish date) is never touched by an import.
+ *   notes, publish date) is never touched by an import, except that an import
+ *   started with "publish" publishes its own drafts once it finishes
+ *   (ListingPublisher; flagged rows only if asked).
  * - Missing figures stay null ("not disclosed"), never 0.
  * - Ratio columns of the workbook are ignored: ListingMetrics recomputes them.
  * - Sample (preview) rows are never overwritten.
@@ -102,6 +104,12 @@ class ListingImporter
                 'finished_at' => now(),
                 'message' => $counts['rows_read'] === 0 ? 'No listing rows found. Is there a "Listing Key" column?' : null,
             ])->save();
+
+            if ($import->publish && ! $import->dry_run) {
+                $import->forceFill([
+                    'published_count' => ListingPublisher::publish(ListingPublisher::forImport($import), (bool) $import->publish_flagged),
+                ])->save();
+            }
         } catch (Throwable $e) {
             report($e);
             $import->forceFill($counts + [

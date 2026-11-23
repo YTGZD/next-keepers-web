@@ -226,6 +226,60 @@ class ListingImportTest extends TestCase
         $this->get("/admin/imports/{$import->id}")->assertOk()->assertSee('2 created');
     }
 
+    public function test_publish_on_import_publishes_new_rows_but_keeps_flagged_ones_as_drafts(): void
+    {
+        $this->artisan('nk:import-listings', ['file' => $this->csvFile($this->sampleRows()), '--preset' => 'western-ny', '--publish' => true])
+            ->assertSuccessful();
+
+        $this->assertSame('active', Business::where('listing_key', 'bizbuysell:1001')->value('status'));
+        $this->assertSame('draft', Business::where('listing_key', 'bizbuysell:1002')->value('status'), 'flagged "Needs review"');
+        $import = ListingImport::sole();
+        $this->assertSame(1, $import->published_count);
+        $this->assertStringContainsString('1 published right away', $import->summary());
+    }
+
+    public function test_publish_on_import_with_flagged_rows_and_never_on_a_dry_run(): void
+    {
+        $file = $this->csvFile($this->sampleRows());
+
+        $this->artisan('nk:import-listings', ['file' => $file, '--preset' => 'western-ny', '--publish' => true, '--dry-run' => true])->assertSuccessful();
+        $this->assertSame(0, Business::count());
+
+        $this->artisan('nk:import-listings', ['file' => $file, '--preset' => 'western-ny', '--publish' => true, '--include-flagged' => true])->assertSuccessful();
+        $this->assertSame(2, Business::where('status', 'active')->count());
+    }
+
+    public function test_publish_on_import_from_the_panel(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->create();
+        $admin->forceFill(['role' => 'admin'])->save();
+        $this->actingAs($admin);
+
+        Livewire::test(ListListingImports::class)
+            ->callAction('importListings', data: [
+                'file' => UploadedFile::fake()->createWithContent('western-ny.csv', $this->csv($this->sampleRows())),
+                'preset' => 'western-ny',
+                'publish' => true,
+            ])
+            ->assertHasNoActionErrors();
+
+        $this->assertTrue(ListingImport::sole()->publish);
+        $this->assertSame(1, Business::where('status', 'active')->count());
+        $this->assertSame(1, Business::where('status', 'draft')->count());
+    }
+
+    public function test_reimporting_never_unpublishes_or_republishes_archived_rows(): void
+    {
+        $file = $this->csvFile($this->sampleRows());
+        $this->artisan('nk:import-listings', ['file' => $file, '--preset' => 'western-ny'])->assertSuccessful();
+        Business::where('listing_key', 'bizbuysell:1001')->update(['status' => 'archived']);
+
+        $this->artisan('nk:import-listings', ['file' => $file, '--preset' => 'western-ny', '--publish' => true, '--include-flagged' => true])->assertSuccessful();
+
+        $this->assertSame('archived', Business::where('listing_key', 'bizbuysell:1001')->value('status'));
+    }
+
     public function test_buyers_cannot_open_the_imports_page(): void
     {
         $this->actingAs(User::factory()->create());
