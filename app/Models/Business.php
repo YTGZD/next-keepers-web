@@ -247,7 +247,23 @@ class Business extends Model
             'met' => $match['met'] ?? [],
             'unknown_note' => $match ? BuyBoxMatcher::unknownNote($match['unknown']) : null,
             'benchmark' => ListingBenchmark::for($this),
+            'badges' => $this->factBadges(),
         ];
+    }
+
+    /**
+     * Short factual tags taken from the listing's own fields (never inferred).
+     *
+     * @return list<string>
+     */
+    public function factBadges(): array
+    {
+        return array_values(array_filter([
+            $this->established_year ? 'Est. '.$this->established_year : null,
+            $this->employees ? $this->employees.' '.Str::plural('employee', $this->employees) : null,
+            filled($this->seller_financing) && $this->seller_financing !== 'No' && $this->seller_financing !== 'Unknown' ? 'Seller financing' : null,
+            $this->sba_mentioned ? 'SBA mentioned' : null,
+        ]));
     }
 
     /** URL of the photo an admin uploaded, or null when there is none. */

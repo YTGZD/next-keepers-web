@@ -73,6 +73,19 @@ class RealDashboardController extends Controller
         if ($state !== '') {
             $query->where('state', $state);
         }
+        // Figure filters. A listing that doesn't disclose the figure never passes a minimum or maximum on it.
+        $numbers = [];
+        foreach (['min_price' => ['asking_price', '>='], 'max_price' => ['asking_price', '<='], 'min_revenue' => ['annual_revenue', '>='], 'min_earnings' => ['earnings', '>=']] as $key => [$column, $op]) {
+            $value = preg_replace('/\D/', '', (string) $request->query($key, ''));
+            $numbers[$key] = $value === '' ? '' : (string) min((int) $value, 1_000_000_000);
+            if ($numbers[$key] !== '') {
+                $query->where($column, $op, (int) $numbers[$key]);
+            }
+        }
+        $disclosedOnly = $request->boolean('disclosed');
+        if ($disclosedOnly) {
+            $query->whereNotNull('asking_price')->whereNotNull('earnings');
+        }
         if ($request->boolean('matches') && $this->matcher->hasCriteria($box)) {
             $this->matcher->apply($query, $box);
         }
@@ -98,9 +111,12 @@ class RealDashboardController extends Controller
             'page' => $page,
             'cards' => $cards,
             'total' => (clone $base)->count(),
+            'addedThisWeek' => (clone $base)->where('published_at', '>=', now()->subDays(7))->count(),
             'industries' => (clone $base)->distinct()->orderBy('industry')->pluck('industry')->filter()->values()->all(),
             'states' => (clone $base)->distinct()->orderBy('state')->pluck('state')->filter()->values()->all(),
-            'filters' => ['q' => $search, 'industry' => $industry, 'state' => $state, 'sort' => $sort, 'matches' => $request->boolean('matches')],
+            'byIndustry' => $this->topCounts($base, 'industry'),
+            'byState' => $this->topCounts($base, 'state'),
+            'filters' => ['q' => $search, 'industry' => $industry, 'state' => $state, 'sort' => $sort, 'matches' => $request->boolean('matches'), 'disclosed' => $disclosedOnly] + $numbers,
             'hasCriteria' => $hasCriteria,
             'savedIds' => $this->savedIds($user),
         ]);
@@ -266,6 +282,20 @@ class RealDashboardController extends Controller
                 $m['listing']->published_at?->timestamp ?? 0,
             ])
             ->values();
+    }
+
+    /**
+     * The most common values of a column among the published listings, biggest first.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<Business>  $base
+     * @return list<array{label: string, count: int}>
+     */
+    private function topCounts($base, string $column, int $limit = 6): array
+    {
+        return (clone $base)->whereNotNull($column)->where($column, '!=', '')
+            ->selectRaw("{$column} as label, count(*) as total")
+            ->groupBy($column)->orderByDesc('total')->orderBy($column)->limit($limit)->get()
+            ->map(fn ($row) => ['label' => (string) $row->label, 'count' => (int) $row->total])->all();
     }
 
     /** The location line stored on the buy box (shown by older views). */

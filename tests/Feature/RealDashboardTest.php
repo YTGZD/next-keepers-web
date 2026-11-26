@@ -127,4 +127,60 @@ class RealDashboardTest extends TestCase
             ->assertSee('$900K')
             ->assertSee("1 saved listing doesn't disclose a price");
     }
+
+    public function test_discover_figure_filters_leave_out_listings_that_do_not_disclose_the_figure(): void
+    {
+        $user = User::factory()->create();
+        $this->listings();
+
+        // A maximum price never lets an undisclosed price through.
+        $this->actingAs($user)->get('/discover?max_price=1000000')->assertOk()
+            ->assertSee('Erie Dental')
+            ->assertDontSee('Monroe Home Care')
+            ->assertDontSee('Big Erie Clinic')
+            ->assertSee('Price up to $1,000,000');
+
+        $this->actingAs($user)->get('/discover?min_price=5000000')->assertOk()
+            ->assertSee('Big Erie Clinic')->assertDontSee('Erie Dental');
+
+        // "Price and earnings disclosed" drops the listing with no price.
+        $this->actingAs($user)->get('/discover?disclosed=1')->assertOk()
+            ->assertSee('Erie Dental')->assertDontSee('Monroe Home Care');
+
+        // Junk in a number field is ignored, not an error.
+        $this->actingAs($user)->get('/discover?min_price=abc&max_price=%24%241')->assertOk();
+    }
+
+    public function test_discover_header_counts_only_published_real_listings(): void
+    {
+        $user = User::factory()->create();
+        $this->listings();
+
+        $response = $this->actingAs($user)->get('/discover')->assertOk();
+        // 5 published real rows: the draft and the 5 sample rows are not counted.
+        $response->assertSee('5 published listings')
+            ->assertSee('Listings')->assertSee('Industries')->assertSee('States')
+            ->assertSee('By state')->assertSee('By industry')
+            ->assertDontSee('Unreviewed Erie Practice');
+    }
+
+    public function test_listing_cards_and_page_show_facts_from_the_listing_only(): void
+    {
+        $user = User::factory()->create();
+        $listing = Business::factory()->published()->create([
+            'name' => 'Facts Dental', 'established_year' => 1998, 'employees' => 12,
+            'seller_financing' => 'Yes', 'sba_mentioned' => true, 'asking_price' => 1200000, 'earnings' => 400000, 'annual_revenue' => 2000000,
+        ]);
+        $bare = Business::factory()->published()->create(['name' => 'Bare Dental', 'established_year' => null, 'employees' => null, 'seller_financing' => null, 'sba_mentioned' => false]);
+
+        $this->actingAs($user)->get('/discover')->assertOk()
+            ->assertSee('Est. 1998')->assertSee('12 employees')->assertSee('Seller financing')->assertSee('SBA mentioned');
+        $this->assertSame([], $bare->toRealCardArray()['badges']);
+
+        $this->actingAs($user)->get('/business/'.$listing->id)->assertOk()
+            ->assertSee('Business overview')->assertSee('Figures at a glance')
+            ->assertSee('role="tablist"', false)
+            ->assertSee('Not verified by Next Keepers')
+            ->assertDontSee('Top Match')->assertDontSee('Verified Business');
+    }
 }
